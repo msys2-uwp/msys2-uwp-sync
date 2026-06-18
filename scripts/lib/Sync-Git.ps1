@@ -98,6 +98,7 @@ function Reset-DestinationBranch {
     $base = $Config.destination.baseCommit
 
     Invoke-Git -RepoPath $DestinationPath -GitArgs @('checkout', '-B', $branch, $base) | Out-Null
+    Invoke-Git -RepoPath $DestinationPath -GitArgs @('reset', '--hard', 'HEAD') | Out-Null
 }
 
 function Get-DestinationBranchTip {
@@ -225,6 +226,8 @@ function Apply-UpstreamCommitToIndex {
         [Parameter(Mandatory)][string] $DestinationPath
     )
 
+    $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('read-tree', 'HEAD')
+
     $parentEntries = @{}
     foreach ($entry in (Get-LsTreeEntries -MirrorPath $MirrorPath -Treeish $Parent)) {
         $parentEntries[$entry.Path] = $entry
@@ -291,7 +294,13 @@ function New-ReplayCommit {
     $messagePath = Join-Path ([System.IO.Path]::GetTempPath()) "sync-commit-$([Guid]::NewGuid().ToString('N')).txt"
     try {
         [System.IO.File]::WriteAllText($messagePath, $Message, [System.Text.UTF8Encoding]::new($false))
-        Invoke-Git -RepoPath $DestinationPath -GitArgs @('commit', '-F', $messagePath) | Out-Null
+        $parent = (Invoke-Git -RepoPath $DestinationPath -GitArgs @('rev-parse', 'HEAD')).ToString().Trim()
+        $tree = (Invoke-Git -RepoPath $DestinationPath -GitArgs @('write-tree')).ToString().Trim()
+        $newCommit = (Invoke-Git -RepoPath $DestinationPath -GitArgs @(
+            'commit-tree', $tree, '-p', $parent, '-F', $messagePath
+        )).ToString().Trim()
+        $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('update-ref', 'HEAD', $newCommit, $parent)
+        $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('reset', '--hard', 'HEAD')
     }
     finally {
         Remove-Item -LiteralPath $messagePath -Force -ErrorAction SilentlyContinue
