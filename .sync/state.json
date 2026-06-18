@@ -8,7 +8,7 @@
     "ports": {
       "repo": "msys2/MSYS2-packages",
       "branch": "master",
-      "lastReplayedSha": null
+      "lastReplayedSha": "7ed00ff5f91ed7e094edbffed2a25c9db2042e06"
     },
     "ports-mingw": {
       "repo": "msys2/MINGW-packages",
@@ -16,11 +16,11 @@
       "lastReplayedSha": null
     }
   },
-  "destinationBranchTip": null,
-  "replayManifestSha": null,
-  "lastSyncAt": null,
+  "destinationBranchTip": "4d11abb3d672513bf12e748ffa91c461ddbd473f",
+  "replayManifestSha": "9adc3a0ef25cdccb80a3e4581e52b1d402c85744d02b93d03c985c0684b25690",
+  "lastSyncAt": "2026-06-18T09:49:54.7659907Z",
   "lastUpstreamCheck": {
-    "ports": null,
-    "ports-mingw": null
+    "ports": "aac3de013fac752c5d052883f4de45b574005bc2",
+    "ports-mingw": "b1a9ee520e8db449debb62b6f3eb3232bd7eae7d"
   }
 }
