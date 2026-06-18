@@ -61,7 +61,7 @@ function Start-ReplaySync {
             Reset-DestinationBranch -DestinationPath $destPath -Config $config -BranchName $branch
         }
         else {
-            Invoke-Git -RepoPath $destPath -GitArgs @('checkout', $branch)
+            Checkout-DestinationBranch -DestinationPath $destPath -BranchName $branch
         }
     }
 
@@ -111,6 +111,15 @@ function Start-ReplaySync {
     }
 
     $queue = @(Sort-ReplayCommitQueue -Queue $queue)
+
+    if ($Mode -eq 'Incremental') {
+        $beforeAge = $queue.Count
+        $queue = @(Filter-ReplayQueueByAge -Queue $queue -Config $config)
+        if ($beforeAge -gt 0 -and $queue.Count -eq 0) {
+            Write-SyncLog 'Pending upstream commits exist but all are within the replay age window; waiting.'
+        }
+    }
+
     if ($MaxCommits -gt 0 -and $queue.Count -gt $MaxCommits) {
         $queue = $queue[0..($MaxCommits - 1)]
     }

@@ -87,6 +87,22 @@ function Initialize-DestinationAlternates {
     [System.IO.File]::WriteAllText($alternatesFile, $text, [System.Text.UTF8Encoding]::new($false))
 }
 
+function Clear-DestinationWorkspace {
+    param(
+        [Parameter(Mandatory)][string] $DestinationPath
+    )
+
+    try {
+        $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('rev-parse', '--verify', 'HEAD')
+        $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('reset', '--hard', 'HEAD')
+    }
+    catch {
+        # Detached or empty repo; checkout will establish HEAD.
+    }
+
+    $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('clean', '-fd')
+}
+
 function Reset-DestinationBranch {
     param(
         [Parameter(Mandatory)][string] $DestinationPath,
@@ -97,8 +113,20 @@ function Reset-DestinationBranch {
     $branch = if ($BranchName) { $BranchName } else { $Config.destination.branch }
     $base = $Config.destination.baseCommit
 
-    Invoke-Git -RepoPath $DestinationPath -GitArgs @('checkout', '-B', $branch, $base) | Out-Null
-    Invoke-Git -RepoPath $DestinationPath -GitArgs @('reset', '--hard', 'HEAD') | Out-Null
+    Clear-DestinationWorkspace -DestinationPath $DestinationPath
+    $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('checkout', '-f', '-B', $branch, $base)
+    $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('reset', '--hard', 'HEAD')
+}
+
+function Checkout-DestinationBranch {
+    param(
+        [Parameter(Mandatory)][string] $DestinationPath,
+        [Parameter(Mandatory)][string] $BranchName
+    )
+
+    Clear-DestinationWorkspace -DestinationPath $DestinationPath
+    $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('checkout', '-f', $BranchName)
+    $null = Invoke-Git -RepoPath $DestinationPath -GitArgs @('reset', '--hard', 'HEAD')
 }
 
 function Get-DestinationBranchTip {
@@ -347,6 +375,43 @@ function Get-TreeRootSha {
     catch { }
 
     return "${portsTree}-${mingwTree}"
+}
+
+function Get-ReplayAgeCutoffUnix {
+    param(
+        [Parameter(Mandatory)] $Config
+    )
+
+    $minutes = $Config.replay.minReplayAgeMinutes
+    if ($null -eq $minutes) {
+        $minutes = $Config.pollIntervalMinutes
+    }
+    if ($null -eq $minutes -or $minutes -lt 0) {
+        $minutes = 5
+    }
+
+    return [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - ([int64]$minutes * 60)
+}
+
+function Filter-ReplayQueueByAge {
+    param(
+        [Parameter(Mandatory)][object[]] $Queue,
+        [Parameter(Mandatory)] $Config
+    )
+
+    $minutes = $Config.replay.minReplayAgeMinutes
+    if ($null -eq $minutes) { $minutes = $Config.pollIntervalMinutes }
+    if ($null -eq $minutes) { $minutes = 5 }
+
+    $cutoff = Get-ReplayAgeCutoffUnix -Config $Config
+    $eligible = @($Queue | Where-Object { $_.AuthorDate -le $cutoff })
+    $held = $Queue.Count - $eligible.Count
+
+    if ($held -gt 0) {
+        Write-SyncLog "Holding $held commit(s) with author date within the last $minutes minute(s) to avoid timeline reorder."
+    }
+
+    return $eligible
 }
 
 function Sort-ReplayCommitQueue {
