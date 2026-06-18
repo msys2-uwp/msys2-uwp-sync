@@ -388,22 +388,21 @@ vary format between bootstrap, incremental, and rebuild runs.
 
 ### Phase 1 - Config and state library
 
-- [ ] `config/sync.json`
-- [ ] `scripts/lib/*.ps1` (config, state, git helpers)
-- [ ] Unit-style tests with Pester (optional, phase 1.5)
+- [x] `config/sync.json`
+- [x] `scripts/lib/*.ps1` (config, state, git helpers)
 
 ### Phase 2 - Replay engine
 
-- [ ] `Sync-Bootstrap.ps1` with progress and resumable cursor
-- [ ] `Sync-Rebuild.ps1`, `Sync-Verify.ps1`
-- [ ] `Sync-Incremental.ps1`
-- [ ] `Sync-Upstream.ps1` dispatcher
+- [x] `Sync-Bootstrap.ps1` with progress and resumable cursor
+- [x] `Sync-Rebuild.ps1`, `Sync-Verify.ps1`
+- [x] `Sync-Incremental.ps1`
+- [x] `Sync-Upstream.ps1` dispatcher
 
 ### Phase 3 - GitHub Actions
 
-- [ ] `sync-upstream.yml` (5-min + daily)
-- [ ] `sync-bootstrap.yml` (manual)
-- [ ] `sync-rebuild.yml`, `sync-verify.yml` (manual + weekly verify)
+- [x] `sync-upstream.yml` (5-min + daily)
+- [x] `sync-bootstrap.yml` (manual)
+- [x] `sync-rebuild.yml`, `sync-verify.yml` (manual + weekly verify)
 - [ ] Wire secrets in `msys2-uwp` org
 
 ### Phase 4 - Initial bootstrap

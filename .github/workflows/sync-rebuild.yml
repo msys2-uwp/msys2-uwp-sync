@@ -1,0 +1,62 @@
+name: Sync rebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type rebuild to reset and replay upstream history'
+        required: true
+        type: string
+
+concurrency:
+  group: sync-rebuild
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    if: inputs.confirm == 'rebuild'
+    runs-on: ubuntu-latest
+    timeout-minutes: 720
+    steps:
+      - name: Checkout sync repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup PowerShell
+        uses: actions/setup-powershell@v5
+        with:
+          pwsh-version: '7.4'
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Clone destination repository
+        env:
+          MSYS2_UWP_SYNC_TOKEN: ${{ secrets.MSYS2_UWP_SYNC_TOKEN }}
+        run: |
+          mkdir -p .work/destination
+          git clone "https://x-access-token:${MSYS2_UWP_SYNC_TOKEN}@github.com/msys2-uwp/msys2-uwp.git" .work/destination/msys2-uwp
+
+      - name: Run rebuild
+        shell: pwsh
+        run: |
+          ./scripts/Sync-Rebuild.ps1 `
+            -DestinationPath .work/destination/msys2-uwp `
+            -PushDestination
+
+      - name: Commit sync state
+        if: success()
+        run: |
+          git add .sync/state.json .sync/replay-manifest.json
+          if git diff --staged --quiet; then
+            echo "No state changes to commit."
+          else
+            git commit -m "Update sync state after rebuild replay."
+            git push origin main
+          fi

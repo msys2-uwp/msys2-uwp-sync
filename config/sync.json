@@ -1,6 +1,12 @@
 {
   "version": 1,
   "replaySpecVersion": 1,
+  "syncRepo": {
+    "owner": "msys2-uwp",
+    "repo": "-msys2-uwp-sync",
+    "branch": "main",
+    "url": "https://github.com/msys2-uwp/-msys2-uwp-sync.git"
+  },
   "destination": {
     "owner": "msys2-uwp",
     "repo": "msys2-uwp",
