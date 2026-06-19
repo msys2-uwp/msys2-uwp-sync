@@ -12,6 +12,8 @@ alwaysApply: false
 |------|---------|
 | `sync-upstream.yml` | Incremental sync: `repository_dispatch`, hourly cron, daily cron, manual |
 | `sync-bootstrap.yml` | Manual full history replay only |
+| `sync-rebuild.yml` | Manual clean replay |
+| `sync-verify.yml` | Scheduled dry-run verification |
 
 ## Mirror repos (separate repositories)
 
@@ -24,8 +26,8 @@ Templates: `docs/examples/mirror-sync.yml`, `docs/examples/mirror-dispatch.yml`.
 
 ## Runner
 
-- Prefer `ubuntu-latest` with `actions/setup-powershell@v5` for `pwsh`.
-- Install/verify `git` before running sync scripts.
+- Prefer `ubuntu-latest` with `actions/setup-node@v4` and Node.js 22.18+.
+- Run `npm ci` before running sync commands.
 
 ## Concurrency
 
@@ -43,8 +45,9 @@ concurrency:
 
 ## Push policy
 
-- Push only branch `upstream` on destination repo.
-- Commit and push `.sync/state.json` to this repo when cursors change.
+- Push destination branches `upstream`, `upstream-ports`, and
+  `upstream-ports-mingw`.
+- Track cursors in destination branches, not a committed sync state file.
 - Skip destination push when script reports no new commits.
 - Use bot identity: `github-actions[bot]`.
 

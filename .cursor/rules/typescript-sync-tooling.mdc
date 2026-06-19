@@ -1,0 +1,43 @@
+---
+description: TypeScript sync tooling conventions
+globs: "src/{cli,lib,types}/**/*.ts"
+alwaysApply: false
+---
+
+# TypeScript Sync Tooling
+
+## Runtime
+
+- Require Node.js 22.18+.
+- Run TypeScript source directly with Node type stripping.
+- Use erasable TypeScript syntax only: no enums, namespaces, or parameter
+  properties.
+- Use `.ts` extensions in relative ESM imports.
+
+## Structure
+
+- Entry points: `src/cli/*.ts`.
+- Shared logic: `src/lib/*.ts`.
+- Shared sync types: `src/types/*.ts`.
+- Config defaults: `config/sync.json`; scripts read config and do not write it.
+
+## Git Replay
+
+- Use the `git` CLI only.
+- Preserve upstream author metadata in `GIT_AUTHOR_*`.
+- Preserve upstream committer metadata in `GIT_COMMITTER_*`.
+- Message body is LF only and follows the template in `docs/PLAN.md`.
+- On failure mid-batch, stop without pushing and keep the checkpoint.
+- First replayed commit parent is `config/sync.json` -> `Destination.BaseCommit`.
+- Bootstrap when any sync branch is missing; `--clean` resets sync branches first.
+
+## Logging
+
+- Print progress with `[sync]`, `[sync][warn]`, and `[sync][error]`.
+- Exit non-zero on failure; exit zero when there is nothing to do or sync
+  succeeds.
+
+## External Tools
+
+- Required: `git`.
+- Optional in CI: `gh` for upstream SHA checks.

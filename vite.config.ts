@@ -19,6 +19,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/minimal-safe-editing-check/**/*.test.ts"],
+    include: ["tests/minimal-safe-editing-check/**/*.test.ts", "tests/sync/**/*.test.ts"],
   },
 });

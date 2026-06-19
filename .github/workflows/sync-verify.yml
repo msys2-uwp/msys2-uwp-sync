@@ -23,10 +23,11 @@ jobs:
         with:
           ref: main
 
-      - name: Setup PowerShell
-        uses: actions/setup-powershell@v5
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          pwsh-version: '7.4'
+          node-version: '22.18.0'
+          cache: npm
 
       - name: Configure git
         run: |
@@ -40,12 +41,14 @@ jobs:
           mkdir -p .work/destination
           git clone "https://github.com/msys2-uwp/msys2-uwp.git" .work/destination/msys2-uwp
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run verify
         id: verify
-        shell: pwsh
         continue-on-error: true
         run: |
-          ./scripts/Sync-Verify.ps1 -DestinationPath .work/destination/msys2-uwp
+          npm run sync -- --dry-run --skip-fetch --destination-path .work/destination/msys2-uwp
 
       - name: Open issue on mismatch
         if: steps.verify.outcome == 'failure'

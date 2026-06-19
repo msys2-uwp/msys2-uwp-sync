@@ -2,9 +2,17 @@
   "name": "msys2-uwp-sync",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "build": "vite build",
+    "sync": "node src/cli/sync-upstream.ts",
+    "fetch-mirrors": "node src/cli/fetch-mirrors.ts",
+    "retrieve-history": "node src/cli/retrieve-history.ts",
+    "merge-queue": "node src/cli/merge-queue.ts",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "msec:check": "node dist/minimal-safe-editing-check/cli.js --check",
     "msec:write": "node dist/minimal-safe-editing-check/cli.js --write"
   },

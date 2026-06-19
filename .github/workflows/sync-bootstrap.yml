@@ -30,10 +30,11 @@ jobs:
         with:
           ref: main
 
-      - name: Setup PowerShell
-        uses: actions/setup-powershell@v5
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          pwsh-version: '7.4'
+          node-version: '22.18.0'
+          cache: npm
 
       - name: Configure git
         run: |
@@ -49,22 +50,13 @@ jobs:
           mkdir -p .work/destination
           git clone "https://x-access-token:${MSYS2_UWP_SYNC_TOKEN}@github.com/msys2-uwp/msys2-uwp.git" .work/destination/msys2-uwp
 
-      - name: Run bootstrap
-        shell: pwsh
-        run: |
-          $max = [int]'${{ inputs.max_commits }}'
-          ./scripts/Sync-Bootstrap.ps1 `
-            -DestinationPath .work/destination/msys2-uwp `
-            -MaxCommits $(if ($max -gt 0) { $max } else { 0 }) `
-            -PushDestination
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Commit sync state
-        if: success()
+      - name: Run bootstrap
         run: |
-          git add .sync/state.json
-          if git diff --staged --quiet; then
-            echo "No state changes to commit."
-          else
-            git commit -m "Update sync state after bootstrap replay."
-            git push origin main
+          args=(--clean --destination-path .work/destination/msys2-uwp)
+          if [ "${{ inputs.max_commits }}" != "0" ]; then
+            args+=(--max-commits "${{ inputs.max_commits }}")
           fi
+          npm run sync -- "${args[@]}"

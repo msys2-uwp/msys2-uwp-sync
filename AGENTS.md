@@ -1,6 +1,6 @@
 # Agent guide: msys2-uwp-sync
 
-This repository builds cross-platform PowerShell tooling to replay upstream
+This repository builds cross-platform TypeScript tooling to replay upstream
 MSYS2 package history into `msys2-uwp/msys2-uwp`.
 
 ## Read first
@@ -15,15 +15,15 @@ MSYS2 package history into `msys2-uwp/msys2-uwp`.
 - **Base commit**: `6fc20894663468a04dd4986a8b1c15a9d5ae8649` (parent of first replayed commit)
 - **Strategy**: deterministic date-ordered replay; same SHAs on every rebuild at same pins
 - **Triggers**: mirror push -> `repository_dispatch` (~1-5 min); hourly poll + daily reconciliation as fallback
-- **Runtime**: PowerShell 7+ (`pwsh`); scripts must work on Windows, Linux, and macOS
-- **State**: `.sync/state.json` tracks cursors and manifest (verify/rebuild)
+- **Runtime**: Node.js 22.18+; TypeScript runs directly with Node type stripping
+- **State**: destination branches track replay and source cursors
 
 ## Do not
 
 - Ship untestable instructions (dot-source-only recipes); use runnable scripts -- see `.cursor/rules/human-testable.mdc` and [`docs/run-local.md`](docs/run-local.md)
 - Use Cursor internal plans (`~/.cursor/plans/`) or untracked shadow plan files; edit [`docs/PLAN.md`](docs/PLAN.md) only (see `.cursor/rules/planning-docs.mdc`)
 - Use `git merge` of entire upstream repos into destination (use replay instead)
-- Add Windows-only APIs (`Get-WmiObject`, registry, etc.) in shared scripts
+- Add platform-specific APIs in shared sync code
 - Commit PATs or tokens; use GitHub Actions secrets only
 - Modify upstream `msys2/*` repositories from this project
 
@@ -31,10 +31,10 @@ MSYS2 package history into `msys2-uwp/msys2-uwp`.
 
 | Task | Location |
 |------|----------|
-| Sync logic | `scripts/Sync-*.ps1`, `scripts/lib/` |
+| Sync logic | `src/cli/`, `src/lib/`, `src/types/` |
 | Config | `config/sync.json` |
-| Replay cursors + manifest | `.sync/state.json` (this repo, committed) |
+| Replay cursors | destination branches `upstream`, `upstream-ports`, `upstream-ports-mingw` |
 | CI | `.github/workflows/` |
 | Design changes | update `docs/PLAN.md` first |
-| Run locally | `Fetch-Mirrors.ps1`, `Retrieve-History.ps1`, `Merge-Queue.ps1` -- see [`docs/run-local.md`](docs/run-local.md) |
-| Unit tests | `./tests/Test-Sync.ps1` |
+| Run locally | `npm run fetch-mirrors`, `npm run retrieve-history`, `npm run merge-queue`, `npm run sync` -- see [`docs/run-local.md`](docs/run-local.md) |
+| Unit tests | `npm test`, `npm run typecheck` |

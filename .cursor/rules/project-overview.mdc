@@ -31,7 +31,7 @@ Do not rewrite the base commit from sync tooling.
 - Do not use wholesale `git merge` of upstream repos.
 - Incremental runs must match append order of a full rebuild at same upstream tips.
 - Incremental only: skip commits with committer date within `minReplayAgeMinutes` (default 5).
-- Track progress in this repo's `.sync/state.json` (cursors + manifest).
+- Track replay cursors with destination branches; use `.work/cache/replay-log/replay-checkpoint.json` only for interrupted runs.
 
 ## Triggers
 
