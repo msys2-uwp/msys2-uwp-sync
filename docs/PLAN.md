@@ -489,7 +489,8 @@ Implements **Stage 1** and **Stage 2** from implementation design.
 
 - **Retrieve:** `Get-SourceReplayHistory` from `upstream-ports` / `upstream-ports-mingw` cursor SHAs to mirror tip
 - **Sort:** `Compare-ReplayRank`, `Merge-ReplayCommitQueues` (4-key merge, not global sort)
-- Tests: `Merge-ReplayCommitQueues.Tests.ps1`, `Parse-GitCommitObject`, metadata/date helpers
+- Local try-it commands: [`run-local.md`](run-local.md)
+- Tests: `./tests/Test-Sync.ps1`
 
 ### Phase 1c -- Replay one-by-one (`Sync-GitReplay.ps1`)
 

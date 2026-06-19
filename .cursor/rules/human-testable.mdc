@@ -1,0 +1,43 @@
+---
+description: Deliver runnable, human-verifiable scripts and docs; no untestable instructions
+alwaysApply: true
+---
+
+# Human-testable deliverables
+
+## Principle
+
+If a human cannot run it from the repo and see a clear result, do not ship it as
+the primary way to verify behavior.
+
+Prefer **executable scripts** with visible output over dot-source recipes or
+documentation-only instructions.
+
+## Do
+
+- Provide runnable entry points: `scripts/Fetch-Mirrors.ps1`, `scripts/Retrieve-History.ps1`,
+  `scripts/Merge-Queue.ps1`, `tests/Test-Sync.ps1`, future `scripts/Sync-Upstream.ps1`
+- Document how to run in [`docs/run-local.md`](../docs/run-local.md) (copy-paste,
+  run, read `[sync]` / `[PASS]` / counts / tables)
+- Run the same command yourself before telling the user something works
+- Print progress and summary so success is obvious
+
+## Do not
+
+- Do not make dot-sourcing lib modules the main test path
+- Do not split a pipeline into numbered Step01/Step02 scripts or opaque test
+  harnesses; use named scripts (`Fetch-Mirrors.ps1`, etc.) that run directly
+- Do not write docs that only say "load functions" with no runnable command
+- Do not claim verification without running the command in this environment
+
+## Docs
+
+- [`docs/run-local.md`](../docs/run-local.md): how a human runs sync locally
+- [`docs/PLAN.md`](../docs/PLAN.md): design; link to run-local for try-it commands
+
+## Agent behavior
+
+- After implementing sync logic, run the relevant script (`Fetch-Mirrors.ps1`,
+  `Retrieve-History.ps1`, `Merge-Queue.ps1`, or `Test-Sync.ps1`) and report
+  actual output (counts, errors)
+- Use `-SkipFetch` when mirrors already exist under `.work/mirrors/`

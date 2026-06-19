@@ -20,6 +20,7 @@ MSYS2 package history into `msys2-uwp/msys2-uwp`.
 
 ## Do not
 
+- Ship untestable instructions (dot-source-only recipes); use runnable scripts -- see `.cursor/rules/human-testable.mdc` and [`docs/run-local.md`](docs/run-local.md)
 - Use Cursor internal plans (`~/.cursor/plans/`) or untracked shadow plan files; edit [`docs/PLAN.md`](docs/PLAN.md) only (see `.cursor/rules/planning-docs.mdc`)
 - Use `git merge` of entire upstream repos into destination (use replay instead)
 - Add Windows-only APIs (`Get-WmiObject`, registry, etc.) in shared scripts
@@ -35,3 +36,5 @@ MSYS2 package history into `msys2-uwp/msys2-uwp`.
 | Replay cursors + manifest | `.sync/state.json` (this repo, committed) |
 | CI | `.github/workflows/` |
 | Design changes | update `docs/PLAN.md` first |
+| Run locally | `Fetch-Mirrors.ps1`, `Retrieve-History.ps1`, `Merge-Queue.ps1` -- see [`docs/run-local.md`](docs/run-local.md) |
+| Unit tests | `./tests/Test-Sync.ps1` |
