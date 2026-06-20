@@ -44,7 +44,7 @@ concurrency:
 
 ## Secrets
 
-- `MSYS2_UWP_SYNC_TOKEN`: write access to `msys2-apiss/msys2-apiss` and this repo
+- `MSYS2_APISS_SYNC_TOKEN`: write access to `msys2-apiss/msys2-apiss` and this repo
 - `SYNC_DISPATCH_TOKEN`: mirror repos only; dispatch `msys2-apiss-sync`
 - Never log tokens; pass via `env:` to script steps only.
 

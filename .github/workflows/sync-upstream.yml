@@ -54,10 +54,10 @@ jobs:
 
       - name: Clone destination repository
         env:
-          MSYS2_UWP_SYNC_TOKEN: ${{ secrets.MSYS2_UWP_SYNC_TOKEN }}
+          MSYS2_APISS_SYNC_TOKEN: ${{ secrets.MSYS2_APISS_SYNC_TOKEN }}
         run: |
           mkdir -p .work/destination
-          git clone "https://x-access-token:${MSYS2_UWP_SYNC_TOKEN}@github.com/msys2-apiss/msys2-apiss.git" .work/destination/msys2-apiss
+          git clone "https://x-access-token:${MSYS2_APISS_SYNC_TOKEN}@github.com/msys2-apiss/msys2-apiss.git" .work/destination/msys2-apiss
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile

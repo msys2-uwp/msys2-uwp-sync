@@ -1,4 +1,4 @@
-# MSYS2-UWP upstream sync plan
+# MSYS2-APISS upstream sync plan
 
 Sync upstream package history from [msys2/MINGW-packages](https://github.com/msys2/MINGW-packages)
 and [msys2/MSYS2-packages](https://github.com/msys2/MSYS2-packages) into
@@ -57,7 +57,7 @@ Tests: `tests/sync/resume.test.ts`, `tests/sync/cursor-branch.test.ts`.
 Scripts read via `config.ts`; they never write config. Full file content is defined in
 **Phase 1a** below.
 
-**Not in sync.json:** GitHub secrets (`MSYS2_UWP_SYNC_TOKEN`, etc.), CLI flags (`--clean`,
+**Not in sync.json:** GitHub secrets (`MSYS2_APISS_SYNC_TOKEN`, etc.), CLI flags (`--clean`,
 `--dry-run`, `--destination-path`, `--max-commits`), and ephemeral paths (default `.work/`
 derived in code).
 
