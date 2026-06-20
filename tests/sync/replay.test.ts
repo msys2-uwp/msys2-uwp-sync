@@ -70,6 +70,40 @@ describe('applyUpstreamCommitToIndex', () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('returns false when upstream adds already match destination HEAD', () => {
+    const root = mkdtempSync(join(tmpdir(), 'msys2-uwp-sync-test-add-'));
+    try {
+      const mirrorPath = join(root, 'mirror');
+      const destinationPath = join(root, 'destination');
+      initTestRepo(mirrorPath);
+      initTestRepo(destinationPath);
+
+      const content = 'already replayed\n';
+      writeRepoFile(mirrorPath, 'pkg/PKGBUILD', content);
+      runGit(mirrorPath, ['add', 'pkg/PKGBUILD']);
+      runGit(mirrorPath, ['commit', '-m', 'upstream add']);
+      const commit = runGit(mirrorPath, ['rev-parse', 'HEAD']).trim();
+      const parent = getFirstParent(mirrorPath, commit);
+
+      writeRepoFile(destinationPath, 'ports/pkg/PKGBUILD', content);
+      runGit(destinationPath, ['add', 'ports/pkg/PKGBUILD']);
+      runGit(destinationPath, ['commit', '-m', 'destination already has mapped tree']);
+
+      const hasChanges = applyUpstreamCommitToIndex({
+        MirrorPath: mirrorPath,
+        Commit: commit,
+        Parent: parent,
+        DestSubdir: 'ports',
+        DestinationPath: destinationPath
+      });
+
+      expect(hasChanges).toBe(false);
+      expect(runGit(destinationPath, ['diff', '--cached', '--name-only'])).toBe('');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('formatReplayCommitMessage', () => {

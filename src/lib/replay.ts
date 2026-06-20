@@ -130,10 +130,6 @@ export function applyUpstreamCommitToIndex(input: {
     runGit(input.DestinationPath, ['rm', '--cached', '-r', '-f', '--ignore-unmatch', '--', ...removePaths]);
   }
 
-  if (indexLines.length > 0) {
-    return true;
-  }
-
   return runGitText(input.DestinationPath, ['diff', '--cached', '--name-only']).trim().length > 0;
 }
 
