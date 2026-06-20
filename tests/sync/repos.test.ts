@@ -1,10 +1,11 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
-import { setDestinationBranchSha } from '../../src/lib/repos.ts';
+import { resolveUpstreamCursorSha, setDestinationBranchSha } from '../../src/lib/repos.ts';
+import { formatReplayCommitMessage } from '../../src/lib/replay.ts';
 
 function runGit(repoPath: string, args: string[]): string {
   const result = spawnSync('git', ['-C', repoPath, ...args], {
@@ -69,6 +70,51 @@ describe('setDestinationBranchSha', () => {
 
       expect(runGit(repoPath, ['rev-parse', 'HEAD']).trim()).toBe(first);
       expect(runGit(repoPath, ['rev-parse', 'upstream-ports']).trim()).toBe(second);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('resolveUpstreamCursorSha', () => {
+  test('reads upstream sha from destination replay commit', () => {
+    const root = mkdtempSync(join(tmpdir(), 'msys2-uwp-sync-repos-cursor-'));
+    try {
+      const destPath = join(root, 'destination');
+      initTestRepo(destPath);
+
+      const upstreamSha = 'f'.repeat(40);
+
+      mkdirSync(join(destPath, 'ports'), { recursive: true });
+      writeFileSync(join(destPath, 'ports/foo.txt'), 'foo\n', 'utf8');
+      runGit(destPath, ['add', 'ports/foo.txt']);
+      runGit(destPath, [
+        'commit',
+        '-m',
+        formatReplayCommitMessage({
+          SortKey: 'ports',
+          Metadata: { Subject: 'sync foo', Body: '' },
+          UpstreamRepo: 'msys2/MSYS2-packages',
+          UpstreamSha: upstreamSha
+        })
+      ]);
+      const destSha = runGit(destPath, ['rev-parse', 'HEAD']).trim();
+
+      expect(resolveUpstreamCursorSha(destPath, destSha, 'msys2/MSYS2-packages')).toBe(upstreamSha);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('returns null when commit message has no source footer', () => {
+    const root = mkdtempSync(join(tmpdir(), 'msys2-uwp-sync-repos-cursor-empty-'));
+    try {
+      const destPath = join(root, 'destination');
+      initTestRepo(destPath);
+      runGit(destPath, ['commit', '--allow-empty', '-m', 'base']);
+      const destSha = runGit(destPath, ['rev-parse', 'HEAD']).trim();
+
+      expect(resolveUpstreamCursorSha(destPath, destSha, 'msys2/MSYS2-packages')).toBeNull();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

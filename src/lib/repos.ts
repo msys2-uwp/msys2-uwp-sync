@@ -6,8 +6,10 @@ import {
   getDestinationCloneUrl,
   getMirrorCloneUrl,
   getSourceConfigEntry,
+  getSourceRepoSlug,
   type SyncConfig
 } from './config.ts';
+import { parseReplayCommitSourceSha } from './replay.ts';
 import { runGit, runGitText } from './git.ts';
 import type { SyncLogger } from './log.ts';
 
@@ -156,17 +158,73 @@ export function updateDestinationSyncBranchRefs(
   config: SyncConfig,
   input: {
     ReplayTipSha: string;
-    PortsSha: string | null;
-    PortsMingwSha: string | null;
+    PortsDestSha: string | null;
+    PortsMingwDestSha: string | null;
   }
 ): void {
   setDestinationBranchSha(destinationPath, config.Destination.Branches.Replay, input.ReplayTipSha);
-  if (input.PortsSha) {
-    setDestinationBranchSha(destinationPath, config.Destination.Branches.CursorPorts, input.PortsSha);
+  if (input.PortsDestSha) {
+    setDestinationBranchSha(destinationPath, config.Destination.Branches.CursorPorts, input.PortsDestSha);
   }
-  if (input.PortsMingwSha) {
-    setDestinationBranchSha(destinationPath, config.Destination.Branches.CursorPortsMingw, input.PortsMingwSha);
+  if (input.PortsMingwDestSha) {
+    setDestinationBranchSha(destinationPath, config.Destination.Branches.CursorPortsMingw, input.PortsMingwDestSha);
   }
+}
+
+export function resolveUpstreamCursorSha(
+  destinationPath: string,
+  cursorDestSha: string,
+  upstreamRepo: string
+): string | null {
+  const message = runGitText(destinationPath, ['log', '-1', '--format=%B', cursorDestSha]);
+  return parseReplayCommitSourceSha(message, upstreamRepo);
+}
+
+export interface SyncRetrieveCursors {
+  PortsDestSha: string | null;
+  PortsMingwDestSha: string | null;
+  PortsUpstreamSha: string | null;
+  PortsMingwUpstreamSha: string | null;
+}
+
+export function resolveSyncRetrieveCursorsFromBranches(
+  destinationPath: string,
+  config: SyncConfig
+): SyncRetrieveCursors {
+  const portsSource = getSourceConfigEntry(config, 'Ports');
+  const mingwSource = getSourceConfigEntry(config, 'PortsMingw');
+  const portsDestSha = getDestinationBranchSha(destinationPath, config.Destination.Branches.CursorPorts);
+  const mingwDestSha = getDestinationBranchSha(destinationPath, config.Destination.Branches.CursorPortsMingw);
+  return {
+    PortsDestSha: portsDestSha,
+    PortsMingwDestSha: mingwDestSha,
+    PortsUpstreamSha: portsDestSha
+      ? resolveUpstreamCursorSha(destinationPath, portsDestSha, getSourceRepoSlug(portsSource))
+      : null,
+    PortsMingwUpstreamSha: mingwDestSha
+      ? resolveUpstreamCursorSha(destinationPath, mingwDestSha, getSourceRepoSlug(mingwSource))
+      : null
+  };
+}
+
+export function advanceSyncCursorDestShasIfSafe(input: {
+  SourceId: string;
+  ReplayTipSha: string;
+  CursorBranchSafe: boolean;
+  LastPortsDestSha: string | null;
+  LastMingwDestSha: string | null;
+}): { PortsDestSha: string | null; PortsMingwDestSha: string | null } {
+  let portsDestSha = input.LastPortsDestSha;
+  let mingwDestSha = input.LastMingwDestSha;
+  if (!input.CursorBranchSafe) {
+    return { PortsDestSha: portsDestSha, PortsMingwDestSha: mingwDestSha };
+  }
+  if (input.SourceId === 'ports') {
+    portsDestSha = input.ReplayTipSha;
+  } else if (input.SourceId === 'ports-mingw') {
+    mingwDestSha = input.ReplayTipSha;
+  }
+  return { PortsDestSha: portsDestSha, PortsMingwDestSha: mingwDestSha };
 }
 
 export function clearDestinationSyncBranches(destinationPath: string, config: SyncConfig, logger: SyncLogger): void {

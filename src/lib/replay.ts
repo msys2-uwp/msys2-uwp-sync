@@ -40,6 +40,16 @@ export function formatReplayCommitMessage(input: {
   return convertToUnixLineEndings(`[${input.SortKey}] ${subject}\n${footer}`);
 }
 
+export function parseReplayCommitSourceSha(message: string, upstreamRepo: string): string | null {
+  const footer = `Source: ${upstreamRepo}@`;
+  const index = message.lastIndexOf(footer);
+  if (index < 0) {
+    return null;
+  }
+  const sha = message.slice(index + footer.length, index + footer.length + 40);
+  return /^[0-9a-f]{40}$/.test(sha) ? sha : null;
+}
+
 export function getDiffTreeEntries(mirrorPath: string, parent: string, commit: string): DiffTreeEntry[] {
   const raw = runGitText(mirrorPath, ['diff-tree', '-r', '-z', '-M', '--no-commit-id', parent, commit]);
   if (!raw) {

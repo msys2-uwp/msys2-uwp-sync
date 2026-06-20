@@ -128,7 +128,7 @@ export function testCommitIsAncestor(
   return false;
 }
 
-export function testReplayCheckpointSafe(input: {
+export function testSyncCursorBranchUpdateSafe(input: {
   Queue: ReplayEntry[];
   Index: number;
   LastPortsSha: string | null;
@@ -150,58 +150,6 @@ export function testReplayCheckpointSafe(input: {
     }
   }
   return true;
-}
-
-export function precomputeSourceCheckpointSafeFlags(
-  queueEntries: readonly ReplayEntry[],
-  parentMap: CommitParentMap
-): boolean[] {
-  const flags = new Array<boolean>(queueEntries.length);
-  const memo = new Map<string, boolean>();
-
-  for (let index = 0; index < queueEntries.length; index++) {
-    const cursorSha = queueEntries[index]!.Sha;
-    let safe = true;
-    for (let remaining = index + 1; remaining < queueEntries.length; remaining++) {
-      if (!testCommitIsAncestor(parentMap, cursorSha, queueEntries[remaining]!.Sha, memo)) {
-        safe = false;
-        break;
-      }
-    }
-    flags[index] = safe;
-  }
-
-  return flags;
-}
-
-export function precomputeReplayCheckpointSafeFlags(input: {
-  Queue: ReplayEntry[];
-  ParentMapPorts: CommitParentMap;
-  ParentMapMingw: CommitParentMap;
-}): boolean[] {
-  const portsEntries = input.Queue.filter((entry) => entry.SourceId === 'ports');
-  const mingwEntries = input.Queue.filter((entry) => entry.SourceId === 'ports-mingw');
-  const portsSafe = precomputeSourceCheckpointSafeFlags(portsEntries, input.ParentMapPorts);
-  const mingwSafe = precomputeSourceCheckpointSafeFlags(mingwEntries, input.ParentMapMingw);
-  const flags = new Array<boolean>(input.Queue.length);
-  let portsIndex = 0;
-  let mingwIndex = 0;
-  let portsCursorSafe = true;
-  let mingwCursorSafe = true;
-
-  for (let index = 0; index < input.Queue.length; index++) {
-    const entry = input.Queue[index]!;
-    if (entry.SourceId === 'ports') {
-      portsCursorSafe = portsSafe[portsIndex] ?? true;
-      portsIndex++;
-    } else {
-      mingwCursorSafe = mingwSafe[mingwIndex] ?? true;
-      mingwIndex++;
-    }
-    flags[index] = portsCursorSafe && mingwCursorSafe;
-  }
-
-  return flags;
 }
 
 export function filterReplayQueueByAge(

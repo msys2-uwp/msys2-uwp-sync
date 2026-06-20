@@ -8,7 +8,8 @@ import {
   applyUpstreamCommitToIndex,
   formatGitReplayDateEnv,
   formatReplayCommitMessage,
-  getFirstParent
+  getFirstParent,
+  parseReplayCommitSourceSha
 } from '../../src/lib/replay.ts';
 
 function runGit(repoPath: string, args: string[]): string {
@@ -103,6 +104,19 @@ describe('formatReplayCommitMessage', () => {
       '[ports-mingw] update bar',
       'Source: msys2/MINGW-packages@def456'
     ].join('\n'));
+  });
+});
+
+describe('parseReplayCommitSourceSha', () => {
+  test('reads upstream sha from replay commit footer', () => {
+    const message = [
+      '[ports] update foo',
+      '',
+      'details',
+      'Source: msys2/MSYS2-packages@' + 'a'.repeat(40)
+    ].join('\n');
+    expect(parseReplayCommitSourceSha(message, 'msys2/MSYS2-packages')).toBe('a'.repeat(40));
+    expect(parseReplayCommitSourceSha(message, 'msys2/MINGW-packages')).toBeNull();
   });
 });
 

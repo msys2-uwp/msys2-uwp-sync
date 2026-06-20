@@ -59,11 +59,10 @@ Throttled dry-run with log file:
 yarn sync --dry-run --skip-fetch --max-commits 5 --log-file .work/cache/replay-log/sync-dryrun.log
 ```
 
-Resume after interrupt or failure (uses `.work/cache/replay-log/replay-checkpoint.json`):
+Continue after interrupt or failure (branch cursors in the destination clone):
 
 ```bash
-yarn sync --dry-run --skip-fetch --log-file .work/cache/replay-log/sync-dryrun.log --log-append --resume
-yarn sync --clear-checkpoint
+yarn sync --skip-fetch --destination-path .work/destination/msys2-uwp --log-file sync-run.log --log-append
 ```
 
 Bootstrap from scratch (reset sync branches, force-push):

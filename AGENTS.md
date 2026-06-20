@@ -16,7 +16,7 @@ MSYS2 package history into `msys2-uwp/msys2-uwp`.
 - **Strategy**: deterministic date-ordered replay; same SHAs on every rebuild at same pins
 - **Triggers**: mirror push -> `repository_dispatch` (~1-5 min); hourly poll + daily reconciliation as fallback
 - **Runtime**: Node.js 22.18+; TypeScript runs directly with Node type stripping
-- **State**: destination branches track replay and source cursors
+- **State**: destination branches (`upstream`, `upstream-ports`, `upstream-ports-mingw`) hold replay progress and resume cursors; no checkpoint file
 
 ## Do not
 

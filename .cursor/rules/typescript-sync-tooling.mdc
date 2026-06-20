@@ -27,7 +27,7 @@ alwaysApply: false
 - Preserve upstream author metadata in `GIT_AUTHOR_*`.
 - Preserve upstream committer metadata in `GIT_COMMITTER_*`.
 - Message body is LF only and follows the template in `docs/PLAN.md`.
-- On failure mid-batch, stop without pushing and keep the checkpoint.
+- On failure mid-batch, stop without pushing; re-run without `--clean` to continue from branch cursors.
 - First replayed commit parent is `config/sync.json` -> `Destination.BaseCommit`.
 - Bootstrap when any sync branch is missing; `--clean` resets sync branches first.
 

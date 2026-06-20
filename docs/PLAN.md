@@ -16,9 +16,41 @@ Sync behavior is derived from **destination branch presence**:
 
 Branches (all in `msys2-uwp/msys2-uwp`):
 
-- `upstream` -- replayed linear history tip
-- `upstream-ports` -- last replayed MSYS2-packages upstream SHA
-- `upstream-ports-mingw` -- last replayed MINGW-packages upstream SHA
+- `upstream` -- replayed linear history tip (full merged replay progress)
+- `upstream-ports` -- destination replay commit used to resume MSYS2-packages retrieve
+- `upstream-ports-mingw` -- destination replay commit used to resume MINGW-packages retrieve
+
+There is **no** separate checkpoint file. Interrupted-run state lives in these three
+branches (plus the `Source: ...@<sha>` footer on cursor-branch commits).
+
+### Interrupted-run state (destination branches, not checkpoint files)
+
+Sync does **not** write resume state to `.work/cache/replay-log/replay-checkpoint.json`
+or any similar sidecar. After each replayed queue entry (and on successful completion),
+progress is stored **only** in the destination git clone:
+
+| Branch | Stored state |
+|--------|----------------|
+| `upstream` | Destination replay tip (linear merged timeline) |
+| `upstream-ports` | Destination commit at the fork-safe MSYS2-packages cursor |
+| `upstream-ports-mingw` | Destination commit at the fork-safe MINGW-packages cursor |
+
+**Resume flow:** re-run `yarn sync` without `--clean`. Sync reads the three branch tips,
+checks out `upstream`, parses upstream mirror cursors from the `Source: msys2/<repo>@<sha>`
+footer on the two cursor-branch commits (`resolveSyncRetrieveCursorsFromBranches`), and
+rebuilds the merged queue from those mirror cursors to each mirror tip.
+
+**During replay:** `upstream` advances on every successfully replayed entry. The cursor
+branches advance only when `testSyncCursorBranchUpdateSafe` passes (fork-safe: every
+remaining queue entry from that source must descend from the new upstream cursor in the
+mirror). Empty skips and parallel fork siblings can leave cursor branches behind `upstream`
+until safe to move (`advanceSyncCursorDestShasIfSafe`).
+
+**On failure:** sync stops without push; branch tips in the local destination clone are
+the resume point. **On `--clean`:** cursor branches are deleted and `upstream` is reset;
+the next run bootstraps from history root.
+
+Tests: `tests/sync/resume.test.ts`, `tests/sync/cursor-branch.test.ts`.
 
 **Single config file.** All sync constants live in [`config/sync.json`](../config/sync.json) only.
 Scripts read via `config.ts`; they never write config. Full file content is defined in
@@ -67,7 +99,6 @@ not the host language.
 | Retrieve | 1x `git log` per source | Once per run | Already efficient |
 | Merge-sort | 0 | Once | Pure in-memory |
 | Replay (real) | ~4-5 per entry (target) | Per commit | Dominant cost |
-| Checkpoint | JSON write (+ optional `rev-parse`) | Every N entries | Tunable interval |
 | Dry-run | ~2 per entry | Per commit | Still heavy at 69k scale |
 
 **Per-commit replay path (optimized target):**
@@ -85,8 +116,7 @@ not the host language.
 |--------------|-----------------|------|
 | Replace `write-tree` + `commit-tree` + `update-ref` with single `git commit` | -3 git calls per replayed commit | Low; same tree result |
 | Pass commit message via stdin instead of temp file | Removes per-commit disk I/O | Low |
-| Track `replayTip` in memory; skip post-commit `rev-parse` for checkpoint | -1 git call per entry | Low |
-| Checkpoint every N commits (e.g. 50-100) instead of every entry | Fewer JSON rewrites | Medium; coarser resume granularity |
+| Track `replayTip` in memory; skip post-commit `rev-parse` | -1 git call per entry | Low |
 
 Bump `ReplaySpecVersion` to 5 if commit-step optimization changes replay SHAs at same
 upstream tips.
@@ -116,8 +146,6 @@ Or via `package.json` script: `yarn sync` (runs `node src/cli/sync-upstream.ts`)
 | `--log-file` | UTF-8 log file path |
 | `--log-append` | Append to log file |
 | `--log-to-console` | Also print info lines when `--log-file` is set |
-| `--resume` | Continue from checkpoint |
-| `--clear-checkpoint` | Delete checkpoint file |
 
 Push three branches after sync unless `--dry-run`. CI and local runs use the same
 invocation; first run and post-`--clean` runs bootstrap automatically.
@@ -166,7 +194,6 @@ src/
     history.ts            # retrieve upstream commit lists from cursor branches
     queue.ts              # merge-sort two lists into replay order
     replay.ts             # apply tree + create replay commit
-    checkpoint.ts         # resume checkpoint JSON
   types/
     replay-entry.ts
 tests/
@@ -175,8 +202,7 @@ config/
   sync.json               # committed as-is; read-only at runtime
 ```
 
-Import order: `git`/`log` -> `config` -> `repos` -> `history` -> `queue` -> `replay` ->
-`checkpoint`.
+Import order: `git`/`log` -> `config` -> `repos` -> `history` -> `queue` -> `replay`.
 
 ### Three-stage pipeline
 
@@ -203,14 +229,17 @@ flowchart LR
 
 | Stage | Module | Input | Output |
 |-------|--------|-------|--------|
-| **1 Retrieve** | `history.ts` | Cursor SHAs on `upstream-ports` / `upstream-ports-mingw`; mirror tips | Two lists in **git history order** (oldest first) |
+| **1 Retrieve** | `history.ts` | Upstream cursors parsed from `upstream-ports` / `upstream-ports-mingw` destination commits; mirror tips | Two lists in **git history order** (oldest first) |
 | **2 Sort** | `queue.ts` | Two lists | One merged queue in **replay rank order** |
 | **3 Replay** | `replay.ts` | Merged queue + current `upstream` tip | New commits on `upstream`; updated cursor branches |
 
 **Cursor semantics**
 
-- `upstream-ports` HEAD = upstream SHA of the **last replayed** MSYS2-packages commit (already done).
-- `upstream-ports-mingw` HEAD = same for MINGW-packages.
+- `upstream-ports` / `upstream-ports-mingw` HEAD = destination replay commit at the current
+  **fork-safe** per-source cursor (may lag `upstream` when empty skips or parallel fork
+  siblings remain in the queue).
+- Upstream mirror cursors for retrieve are parsed from the commit message footer on those
+  branches: `Source: msys2/<repo>@<sha>` (`resolveUpstreamCursorSha`).
 - **Incremental retrieve range:** `{cursorSha}..{mirrorTip}` excluding cursor itself -- only commits **not yet replayed**.
 - **Full retrieve** (any of the three branches missing, or after `--clean`): `{root}..{mirrorTip}` -- entire history for that source; cursor treated as `null`.
 
@@ -308,7 +337,7 @@ flowchart TB
 1. Index starts at **destination tree** at current `replayTip` (both subtrees as built so far).
 2. Compute **upstream file delta**: `diff-tree upstreamSha^1 upstreamSha` on mirror (first parent; merge commits included in retrieve list).
 3. **Rewrite paths** into that entry's `DestSubdir` only; other subdir unchanged in index.
-4. Empty mapped delta + `SkipEmptyTreeDiff`: skip destination commit; still advance source cursor.
+4. Empty mapped delta + `SkipEmptyTreeDiff`: skip destination commit; `upstream` unchanged for that entry; cursor branches unchanged (may lag until a later replayed entry).
 5. Else `newReplayCommit` with **single parent = `replayTip`**; new SHA becomes next `replayTip`.
 
 Never `git merge` on destination; never a destination commit with two parents. Upstream merge **topology** is dropped; only **file deltas** and **metadata** are replayed.
@@ -319,8 +348,11 @@ No shared paths between sources. A ports entry touches only `ports/*`; ports-min
 
 **Cursors vs linear tip**
 
-- `upstream-ports` / `upstream-ports-mingw`: last **upstream SHA** processed per source.
-- `upstream` tip: linear replay head on destination.
+- `upstream-ports` / `upstream-ports-mingw`: destination commits at the **fork-safe**
+  per-source cursor; upstream retrieve SHAs come from the `Source: ...@<sha>` footer
+  (`resolveUpstreamCursorSha` / `resolveSyncRetrieveCursorsFromBranches`).
+- `upstream` tip: linear replay head on destination (always the furthest merged progress).
+- Cursor branches may lag `upstream` after empty skips or mid-fork replay; that is expected.
 - No 1:1 SHA equality between upstream and destination commits (different parents, normalized messages).
 
 ### Data: replay commit entry
@@ -367,9 +399,9 @@ flowchart TD
 
 3. **Clean (optional)** -- `clearDestinationSyncBranches`.
 
-4. **Read cursors** -- from destination branch HEADs:
-   - `cursorPorts` = `getDestinationBranchSha(CursorPorts)` or `null`
-   - `cursorPortsMingw` = `getDestinationBranchSha(CursorPortsMingw)` or `null`
+4. **Read cursors** -- from destination branch HEADs (`resolveSyncRetrieveCursorsFromBranches`):
+   - Read destination SHAs on `upstream-ports` / `upstream-ports-mingw`
+   - Parse upstream mirror cursors from each tip commit message (`Source: ...@<sha>`)
    - `isFullReplay` = any of three branches missing
 
 5. **Checkout** -- full replay: `upstream` at BaseCommit; incremental: `upstream` at current replay tip.
@@ -386,11 +418,14 @@ flowchart TD
 8. **Stage 3 -- Replay one-by-one** (`replay.ts`)
    - For each entry in merged queue (in order):
      - `applyUpstreamCommitToIndex` (skip empty diff if configured)
-     - `newReplayCommit` (or skip commit, still track cursor for that source)
-     - Advance local `replayTip`
-   - Track `lastPortsSha` / `lastPortsMingwSha` per source processed
+     - `newReplayCommit` when mapped diff non-empty (or skip commit)
+     - Advance local `replayTip` on each replayed commit
+     - Update `upstream` branch tip every replayed entry
+     - Update `upstream-ports` / `upstream-ports-mingw` only when fork-safe
+       (`testSyncCursorBranchUpdateSafe`, `advanceSyncCursorDestShasIfSafe`)
 
-9. **Update refs** -- `repos.ts`: set `upstream`, `upstream-ports`, `upstream-ports-mingw` branch SHAs.
+9. **Update refs** -- `repos.ts`: `updateDestinationSyncBranchRefs` sets `upstream` and
+   cursor branches (cursor branches may stay at the previous fork-safe destination commit).
 
 10. **Push** -- `pushDestinationBranches` unless `--dry-run`.
 
@@ -412,6 +447,8 @@ Optional cache under `.work/cache/replay-log/` when mirror tip unchanged.
 | `mergeReplayCommitQueues` | Two-pointer merge of two history-ordered lists |
 | `filterReplayQueueByAge` | Incremental only; drop fresh commits |
 | `getReplayAgeCutoffUnix` | Cutoff epoch for age gate |
+| `buildMirrorCommitParentMap` | In-memory parent map for fork-safe cursor checks |
+| `testSyncCursorBranchUpdateSafe` | True when cursor branches may advance after queue index (no fork sibling left) |
 
 Unit tests must cover: rank comparison tie-breakers, merge stability within source, cross-source interleave, age filter.
 
@@ -430,8 +467,8 @@ Tree rules: prefix rewrite only; no timestamp reliance; never create merge commi
 
 | Situation | Action |
 |-----------|--------|
-| Empty mapped diff | Skip commit; advance source cursor |
-| Replay failure mid-batch | Stop; do not push; destination stays at last good local state; checkpoint retained for `--resume` |
+| Empty mapped diff | Skip destination commit; cursor branches unchanged until a later fork-safe replay |
+| Replay failure mid-batch | Stop; do not push; destination stays at last good local state; re-run without `--clean` to continue from branch cursors |
 | Push rejected | Fail with error; operator investigates |
 | Missing BaseCommit in clone | Fetch destination repo history first; fail if still missing |
 | Upstream force-push / missing SHA | Fail; human runs `--clean` and full replay |
@@ -453,29 +490,14 @@ Full rebuild: `--clean` then sync. Incremental at same tips adds zero commits.
 
 `--log-file` writes UTF-8 (no BOM) log files; suppresses console info lines unless `--log-to-console`.
 
-### Resume checkpoint
+### Resume after interrupt
 
-Interrupted runs (dry-run or real replay) save progress to
-`.work/cache/replay-log/replay-checkpoint.json` at **fork-safe** queue positions only
-(when every remaining entry from each source descends from that source cursor in the
-mirror). All three destination branches (`upstream`, `upstream-ports`,
-`upstream-ports-mingw`) are updated together after every queue entry; the checkpoint
-file may lag during parallel-branch replay.
-
-| Field | Purpose |
-|-------|---------|
-| `LastPortsSha` / `LastPortsMingwSha` | Upstream cursors after last processed entry |
-| `ReplayTipSha` | Destination `upstream` tip after last committed replay (real sync only) |
-| `ProcessedCount` | Total entries processed across runs (index into run-start queue on resume) |
-| `RunStartPortsSha` / `RunStartPortsMingwSha` | Cursors at run start; used to rebuild the full merged queue on resume |
-| `IsFullReplay` | Whether age gate was skipped for this run |
-| `DryRun` | Must match the resumed run (`--dry-run` or not) |
-| `ReplaySpecVersion` | Must match `config/sync.json` |
-
-Re-run with `--resume` (and the same `--dry-run` setting). Resume rebuilds the merged
-queue from run-start cursors, slices off `ProcessedCount` entries, and checks out
-`upstream` from the local branch tip. `--clean` or `--clear-checkpoint` deletes the
-file. Successful completion clears it automatically.
+Re-run `yarn sync` **without** `--clean`. Progress is read from destination branches only
+(no JSON checkpoint under `.work/`). Retrieve cursors come from `upstream-ports` and
+`upstream-ports-mingw` (parse `Source: ...@<sha>` from each branch tip commit). Checkout
+`upstream` from its branch tip. Cursor branches advance only at fork-safe queue positions
+(all remaining entries from each source descend from that source cursor in the mirror), so
+an abort mid-fork does not leave a cursor on one sibling line while the other remains. Already-replayed entries may appear again as `skip empty diff` when cursor branches lag behind skipped queue entries.
 
 Dry-run does not modify the destination index or create commits; it only diffs upstream trees to detect empty skips.
 
@@ -489,7 +511,7 @@ All sync text I/O uses **UTF-8 without BOM** so upstream author names, emails, p
 | Git subprocess | `git.ts` spawn wrapper sets UTF-8 encoding on streams |
 | Git repos | `setGitRepoUtf8Encoding` on each mirror/destination clone: `i18n.logOutputEncoding`, `i18n.commitEncoding`, `core.quotepath=false` |
 | Commit messages | LF-only; pass via stdin to `git commit -F -` |
-| Log / checkpoint / cache JSON | `fs.writeFileSync` or `WriteStream` with UTF-8 no BOM |
+| Log / cache JSON | `fs.writeFileSync` or `WriteStream` with UTF-8 no BOM |
 | CI workflows | `git config --global i18n.logOutputEncoding utf-8` and `i18n.commitEncoding utf-8` in setup steps |
 
 Git metadata is read with UTF-8 stdout. Path lists use `-z` NUL-separated git output where non-ASCII paths are possible.
@@ -625,7 +647,11 @@ Read-only at runtime.
 | `initializeDestinationRepository` | Clone/open destination at `--destination-path` |
 | `getDestinationBranchSha` | `git rev-parse <branch>`; `null` if missing |
 | `testAllSyncBranchesExist` | True only when all three branch names resolve |
-| `setDestinationBranchSha` | `git branch -f <branch> <sha>` |
+| `setDestinationBranchSha` | Update branch tip (checked-out branch uses `reset --hard`) |
+| `resolveUpstreamCursorSha` | Parse upstream SHA from a destination replay commit message |
+| `resolveSyncRetrieveCursorsFromBranches` | Read both cursor branches; return destination + upstream cursors |
+| `advanceSyncCursorDestShasIfSafe` | Apply fork-safe cursor branch destination SHAs after replay |
+| `updateDestinationSyncBranchRefs` | Set `upstream`, `upstream-ports`, `upstream-ports-mingw` tips |
 | `clearDestinationSyncBranches` | **`--clean`**: reset `upstream` to BaseCommit; delete cursor branches |
 | `pushDestinationBranches` | Push `upstream`, `upstream-ports`, `upstream-ports-mingw` |
 
@@ -651,7 +677,7 @@ After clean, any missing branch triggers full replay on the next sync pass.
 
 Implements **Stage 1** and **Stage 2** from implementation design.
 
-- **Retrieve:** `getSourceReplayHistory` from `upstream-ports` / `upstream-ports-mingw` cursor SHAs to mirror tip
+- **Retrieve:** upstream cursors from `upstream-ports` / `upstream-ports-mingw` (parse `Source: ...@<sha>`), then `getSourceReplayHistory` to mirror tip
 - **Sort:** `compareReplayRank`, `mergeReplayCommitQueues` (4-key merge, not global sort)
 - Local try-it commands: [`run-local.md`](run-local.md)
 - Tests: `yarn test`
@@ -668,7 +694,7 @@ Implements **Stage 3** from implementation design.
 
 `sync-upstream.ts` wires: retrieve -> sort -> replay -> update refs -> push (see algorithm above).
 
-Flags: `--clean`, `--dry-run`, `--skip-fetch`, `--max-commits`, `--log-file`, `--log-append`, `--log-to-console`, `--resume`, `--clear-checkpoint`.
+Flags: `--clean`, `--dry-run`, `--skip-fetch`, `--max-commits`, `--log-file`, `--log-append`, `--log-to-console`.
 
 Verify against legacy PowerShell on `--dry-run --max-commits 100` (same skip/replay decisions) before removing PS.
 
@@ -718,7 +744,7 @@ GitHub Actions requires static cron in YAML; workflow comments reference sync.js
 ### [`AGENTS.md`](../AGENTS.md) and [`.cursor/rules/project-overview.mdc`](../.cursor/rules/project-overview.mdc)
 
 - All sync constants in committed `config/sync.json` only (see Phase 1a key table)
-- Cursors: destination branch HEADs
+- Cursors and interrupted-run state: three destination branch tips only (no checkpoint file); see **Interrupted-run state** above
 - Bootstrap: implicit when branches missing; `--clean` to reset
 - Poll tolerance: `PollIntervalMinutes` in sync.json
 - Runtime: Node.js 22.18+, TypeScript (native type stripping), vitest
@@ -734,6 +760,7 @@ GitHub Actions requires static cron in YAML; workflow comments reference sync.js
 
 - Fresh destination (no branches) -> full bootstrap, three branches created
 - Second run (all branches exist) -> incremental only, age gate active
+- Interrupt mid-run -> re-run without `--clean`; resume from branch tips and fork-safe cursor footers
 - `--clean` then run -> identical result to fresh bootstrap at same upstream tips
 - Incremental at unchanged tips -> zero new commits
 
@@ -746,7 +773,7 @@ GitHub Actions requires static cron in YAML; workflow comments reference sync.js
 | Replay SHA drift after `git commit` optimization | Bump `ReplaySpecVersion`; document `--clean` rebuild; compare small batches before/after |
 | NUL-delimited `diff-tree -z` parsing bugs | Port parser logic literally; keep `-z` tests with non-ASCII paths |
 | UTF-8 author names / commit messages | Keep `LANG=C.UTF-8`, UTF-8 stdin/stdout, LF-only messages |
-| 69k-commit bootstrap runtime still hours | Set CI timeout appropriately; log commits/sec; tune checkpoint interval |
+| 69k-commit bootstrap runtime still hours | Set CI timeout appropriately; log commits/sec |
 | Windows local dev | Node + git works on win32; test `yarn sync` locally |
 
 ---
