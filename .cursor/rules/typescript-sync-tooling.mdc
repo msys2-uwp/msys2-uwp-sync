@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Runtime
 
-- Require Node.js 22.18+.
+- Require Node.js 26+.
 - Run TypeScript source directly with Node type stripping.
 - Use erasable TypeScript syntax only: no enums, namespaces, or parameter
   properties.

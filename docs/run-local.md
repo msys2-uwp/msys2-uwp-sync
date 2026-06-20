@@ -1,6 +1,6 @@
 # Run locally
 
-Requires **Node.js 22.18+**, **Yarn**, **git**, and network (mirror
+Requires **Node.js 26+**, **Yarn**, **git**, and network (mirror
 clone/fetch).
 
 From the repository root:

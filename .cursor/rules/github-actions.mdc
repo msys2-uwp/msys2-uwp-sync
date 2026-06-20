@@ -31,7 +31,7 @@ Install both under `sync/.github/workflows/`. Set `UPSTREAM_REPO` variable and
 
 ## Runner
 
-- Prefer `ubuntu-latest` with `actions/setup-node@v4` and Node.js 22.18+.
+- Prefer `ubuntu-latest` with `actions/setup-node@v4` and Node.js 26+.
 - Run `yarn install --frozen-lockfile` before running sync commands.
 
 ## Concurrency

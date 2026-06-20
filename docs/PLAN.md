@@ -65,14 +65,14 @@ derived in code).
 
 ## Runtime
 
-Sync tooling is **TypeScript on Node.js 22.18+** (ESM). Node runs `.ts` source directly via
+Sync tooling is **TypeScript on Node.js 26+** (ESM). Node runs `.ts` source directly via
 built-in type stripping (no `tsc` build, no `dist/`). Git operations use the `git` CLI only
 (no libgit2). Cross-platform: Windows, Linux, macOS.
 
 **Tooling:**
 
 - Node.js native type stripping: `node src/cli/sync-upstream.ts` (enabled by default on
-  Node 22.18+; on older 22.x use `--experimental-strip-types`)
+  Node 26+)
 - `tsconfig.json` with `noEmit: true` and `erasableSyntaxOnly: true` for editor support and
   `yarn typecheck` (`tsc --noEmit`) -- not used at runtime
 - vitest for unit tests
@@ -534,7 +534,7 @@ Phase 3 parity check, then removed in Phase 4.
 ```json
 {
   "type": "module",
-  "engines": { "node": ">=22.18.0" },
+  "engines": { "node": ">=26.0.0" },
   "scripts": {
     "sync": "node src/cli/sync-upstream.ts",
     "fetch-mirrors": "node src/cli/fetch-mirrors.ts",
@@ -741,7 +741,7 @@ GitHub Actions requires static cron in YAML; workflow comments reference sync.js
 
 | Item | Change |
 |------|--------|
-| Runtime | `actions/setup-node` (Node 22.18+), `yarn install --frozen-lockfile` |
+| Runtime | `actions/setup-node` (Node 26+), `yarn install --frozen-lockfile` |
 | Sync script | `yarn sync` or `node src/cli/sync-upstream.ts` |
 | Triggers | `repository_dispatch`, schedule, `workflow_dispatch` with optional `clean` input |
 | Schedule | `# PollIntervalMinutes=60, DailyReconciliationCron in config/sync.json` |
@@ -764,7 +764,7 @@ GitHub Actions requires static cron in YAML; workflow comments reference sync.js
 - Cursors and interrupted-run state: three destination branch tips only (no checkpoint file); see **Interrupted-run state** above
 - Bootstrap: implicit when branches missing; `--clean` to reset
 - Poll tolerance: `PollIntervalMinutes` in sync.json
-- Runtime: Node.js 22.18+, TypeScript (native type stripping), vitest
+- Runtime: Node.js 26+, TypeScript (native type stripping), vitest
 
 ### Phase 2 workflow (see Phase 2 section above)
 
