@@ -120,11 +120,29 @@ async function githubRequest<T>(
   return (await res.json()) as T;
 }
 
-async function dispatchMirrorSyncWorkflow(
+async function mirrorSyncRunInProgress(
   token: string,
   owner: string,
   repo: string
-): Promise<void> {
+): Promise<boolean> {
+  const data = await githubRequest<{ workflow_runs: { status: string }[] }>(
+    token,
+    `/repos/${owner}/${repo}/actions/workflows/mirror-sync.yml/runs` +
+      '?branch=sync&status=in_progress&per_page=1'
+  );
+  return (data?.workflow_runs.length ?? 0) > 0;
+}
+
+async function dispatchMirrorSyncWorkflow(
+  token: string,
+  owner: string,
+  repo: string,
+  logger?: SyncLogger
+): Promise<boolean> {
+  if (logger && (await mirrorSyncRunInProgress(token, owner, repo))) {
+    logger.write(`Skip mirror-sync dispatch on ${owner}/${repo}: run already in progress`);
+    return false;
+  }
   await githubRequest(
     token,
     `/repos/${owner}/${repo}/actions/workflows/mirror-sync.yml/dispatches`,
@@ -134,6 +152,7 @@ async function dispatchMirrorSyncWorkflow(
       body: JSON.stringify({ ref: 'sync' })
     }
   );
+  return true;
 }
 
 async function dispatchWithRetry(
@@ -147,7 +166,7 @@ async function dispatchWithRetry(
   let bootstrapped = false;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      await dispatchMirrorSyncWorkflow(token, owner, repo);
+      await dispatchMirrorSyncWorkflow(token, owner, repo, logger);
       return;
     } catch (error) {
       if (error instanceof GitHubApiError && error.status === 404 && !bootstrapped) {
@@ -337,9 +356,16 @@ export async function bootstrapMirrorWorkflowIfNeeded(input: {
       );
     }
     if (input.TriggerSync !== false) {
-      await dispatchMirrorSyncWorkflow(input.Token, input.Owner, input.RepoName);
-      input.Logger.write(`Triggered initial mirror-sync on ${input.Owner}/${input.RepoName}`);
-      if (input.WaitForSync !== false) {
+      const triggered = await dispatchMirrorSyncWorkflow(
+        input.Token,
+        input.Owner,
+        input.RepoName,
+        input.Logger
+      );
+      if (triggered) {
+        input.Logger.write(`Triggered initial mirror-sync on ${input.Owner}/${input.RepoName}`);
+      }
+      if (triggered && input.WaitForSync !== false) {
         await waitForMirrorSyncWorkflowRun({
           Token: input.Token,
           Owner: input.Owner,
@@ -371,8 +397,15 @@ export async function bootstrapMirrorWorkflowIfNeeded(input: {
   }
 
   if (input.TriggerSync) {
-    await dispatchMirrorSyncWorkflow(input.Token, input.Owner, input.RepoName);
-    input.Logger.write(`Triggered mirror-sync on ${input.Owner}/${input.RepoName}`);
+    const triggered = await dispatchMirrorSyncWorkflow(
+      input.Token,
+      input.Owner,
+      input.RepoName,
+      input.Logger
+    );
+    if (triggered) {
+      input.Logger.write(`Triggered mirror-sync on ${input.Owner}/${input.RepoName}`);
+    }
   }
 }
 
