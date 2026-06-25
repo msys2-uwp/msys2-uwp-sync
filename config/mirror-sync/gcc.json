@@ -1,0 +1,9 @@
+{
+  "UpstreamUrl": "https://gcc.gnu.org/git/gcc.git",
+  "Branches": [
+    { "Upstream": "master", "Mirror": "master" }
+  ],
+  "Notify": {
+    "Enabled": false
+  }
+}

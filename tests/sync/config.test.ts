@@ -13,6 +13,7 @@ describe('getMirrorPollRepoNames', () => {
       'glibc',
       'binutils-gdb',
       'elfutils',
+      'gcc',
       'enscript'
     ]);
   });

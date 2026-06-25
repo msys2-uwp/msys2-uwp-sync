@@ -34,6 +34,7 @@
     "Glibc": "glibc",
     "BinutilsGdb": "binutils-gdb",
     "Elfutils": "elfutils",
+    "Gcc": "gcc",
     "Enscript": "enscript",
     "SyncIntervalMinutes": 15,
     "DispatchEventType": "upstream-updated"
@@ -54,6 +55,10 @@
     "Elfutils": {
       "UpstreamUrl": "https://sourceware.org/git/elfutils.git",
       "Branch": "main"
+    },
+    "Gcc": {
+      "UpstreamUrl": "https://gcc.gnu.org/git/gcc.git",
+      "Branch": "master"
     },
     "Enscript": {
       "UpstreamUrl": "https://git.savannah.gnu.org/git/enscript.git",

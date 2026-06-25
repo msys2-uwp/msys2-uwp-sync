@@ -380,6 +380,21 @@ export function applyMirrorSyncTemplate(input: {
   return true;
 }
 
+function remoteGitBranchSha(url: string, branch: string): string | null {
+  try {
+    const out = execSync(`git ls-remote "${url}" "refs/heads/${branch}"`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    }).trim();
+    if (!out) {
+      return null;
+    }
+    return out.split(/\s+/)[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function pushMirrorContentBranch(
   mirrorPath: string,
   contentBranch: string,
@@ -389,14 +404,12 @@ export function pushMirrorContentBranch(
   if (!refExists(mirrorPath, contentBranch)) {
     return false;
   }
-  const originBranch = `origin/${contentBranch}`;
   const local = runGitText(mirrorPath, ['rev-parse', contentBranch]).trim();
-  if (refExists(mirrorPath, originBranch)) {
-    const remote = runGitText(mirrorPath, ['rev-parse', originBranch]).trim();
-    if (local === remote) {
-      logger.write(`${repoName}: ${contentBranch} already on origin`);
-      return false;
-    }
+  const originUrl = runGitText(mirrorPath, ['remote', 'get-url', 'origin']).trim();
+  const remote = remoteGitBranchSha(originUrl, contentBranch);
+  if (remote === local) {
+    logger.write(`${repoName}: ${contentBranch} already on origin`);
+    return false;
   }
   runGit(
     mirrorPath,
