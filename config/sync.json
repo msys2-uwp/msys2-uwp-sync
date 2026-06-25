@@ -32,6 +32,7 @@
     "PortsMingw": "MINGW-packages",
     "MingwW64": "mingw-w64",
     "Glibc": "glibc",
+    "Enscript": "enscript",
     "SyncIntervalMinutes": 15,
     "DispatchEventType": "upstream-updated"
   },
@@ -42,6 +43,10 @@
     },
     "Glibc": {
       "UpstreamUrl": "https://sourceware.org/git/glibc.git",
+      "Branch": "master"
+    },
+    "Enscript": {
+      "UpstreamUrl": "https://git.savannah.gnu.org/git/enscript.git",
       "Branch": "master"
     }
   },

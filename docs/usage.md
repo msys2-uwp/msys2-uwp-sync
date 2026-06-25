@@ -31,6 +31,7 @@ gh secret set SYNC_DISPATCH_TOKEN --repo msys2-apiss/MSYS2-packages
 gh secret set SYNC_DISPATCH_TOKEN --repo msys2-apiss/MINGW-packages
 gh secret set SYNC_DISPATCH_TOKEN --repo msys2-apiss/mingw-w64
 gh secret set SYNC_DISPATCH_TOKEN --repo msys2-apiss/glibc
+gh secret set SYNC_DISPATCH_TOKEN --repo msys2-apiss/enscript
 ```
 
 Paste the same PAT when prompted. Used for **git push** during mirror-sync (required
@@ -48,6 +49,7 @@ gh workflow run mirror-sync.yml --repo msys2-apiss/MSYS2-packages --ref sync
 gh workflow run mirror-sync.yml --repo msys2-apiss/MINGW-packages --ref sync
 gh workflow run mirror-sync.yml --repo msys2-apiss/mingw-w64 --ref sync
 gh workflow run mirror-sync.yml --repo msys2-apiss/glibc --ref sync
+gh workflow run mirror-sync.yml --repo msys2-apiss/enscript --ref sync
 ```
 
 Each mirror repo uses the same workflow template

@@ -1,0 +1,9 @@
+{
+  "UpstreamUrl": "https://git.savannah.gnu.org/git/enscript.git",
+  "Branches": [
+    { "Upstream": "master", "Mirror": "master" }
+  ],
+  "Notify": {
+    "Enabled": false
+  }
+}

@@ -10,7 +10,8 @@ describe('getMirrorPollRepoNames', () => {
       'MSYS2-packages',
       'MINGW-packages',
       'mingw-w64',
-      'glibc'
+      'glibc',
+      'enscript'
     ]);
   });
 
