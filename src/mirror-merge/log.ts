@@ -5,6 +5,22 @@ import type { Logger } from '../git/log.ts';
 
 export type { Logger } from '../git/log.ts';
 
+const FIBONACCI_PROGRESS_UP_TO_100 = new Set([1, 2, 3, 5, 8, 13, 21, 34, 55, 89]);
+
+/** Log at fibonacci indices for the first 100 entries, then every 100; always log at total. */
+export function shouldLogQueueProgress(processed: number, total?: number): boolean {
+  if (processed <= 0) {
+    return false;
+  }
+  if (total !== undefined && processed === total) {
+    return true;
+  }
+  if (processed <= 100) {
+    return FIBONACCI_PROGRESS_UP_TO_100.has(processed) || processed === 100;
+  }
+  return processed % 100 === 0;
+}
+
 export function getWorkDirectory(repoRoot: string): string {
   const work = join(repoRoot, '.work');
   mkdirSync(work, { recursive: true });

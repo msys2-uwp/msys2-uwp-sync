@@ -9,7 +9,6 @@
   "scripts": {
     "mirror-init": "node src/mirror-init/cli.ts",
     "mirror-poll": "node src/mirror-poll/cli.ts",
-    "mirror-sync": "node src/mirror-sync/cli.ts",
     "mirror-merge": "node src/mirror-merge/cli.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

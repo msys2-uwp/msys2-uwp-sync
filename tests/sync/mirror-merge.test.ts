@@ -4,6 +4,7 @@ import {
   formatMirrorMergeCursorSummary,
   resolveMirrorMergeMode
 } from '../../src/mirror-merge/index.ts';
+import { shouldLogQueueProgress } from '../../src/mirror-merge/log.ts';
 import type { SyncConfig } from '../../src/mirror-merge/config.ts';
 
 const testConfig: SyncConfig = {
@@ -59,6 +60,20 @@ describe('resolveMirrorMergeMode', () => {
 
   test('runs incremental when all sync branches exist', () => {
     expect(resolveMirrorMergeMode({ Clean: false, AllSyncBranchesExist: true })).toBe('incremental');
+  });
+});
+
+describe('shouldLogQueueProgress', () => {
+  test('logs fibonacci indices up to 100 then every 100 and at total', () => {
+    expect(shouldLogQueueProgress(1)).toBe(true);
+    expect(shouldLogQueueProgress(4)).toBe(false);
+    expect(shouldLogQueueProgress(5)).toBe(true);
+    expect(shouldLogQueueProgress(89)).toBe(true);
+    expect(shouldLogQueueProgress(90)).toBe(false);
+    expect(shouldLogQueueProgress(100)).toBe(true);
+    expect(shouldLogQueueProgress(150)).toBe(false);
+    expect(shouldLogQueueProgress(200)).toBe(true);
+    expect(shouldLogQueueProgress(69078, 69078)).toBe(true);
   });
 });
 

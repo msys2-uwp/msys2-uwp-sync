@@ -11,10 +11,12 @@ export function printMirrorMergeCliHelp(defaultDestinationPath: string): void {
 
 Options:
   --clean                   Reset destination sync branches before replay
-  --dry-run                 Replay locally without pushing
+  --dry-run                 Preview queue without replay commits or push
+  --push                    Push destination branches after replay
   --skip-fetch              Skip mirror and destination fetch
   --max-commits <n>         Limit replay to n queue entries (0 = no limit)
-  --destination-path <path> Destination clone path (default: ${defaultDestinationPath})
+  --destination-path <path> Existing destination git clone (must exist)
+                            Omit to use ${defaultDestinationPath} (cloned if missing)
   --log-file <path>         Write log to file
   --log-append              Append to log file
   --log-to-console          Also print log lines to stdout

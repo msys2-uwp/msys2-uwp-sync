@@ -4,7 +4,7 @@ import { performance } from 'node:perf_hooks';
 
 import { printMirrorMergeCliHelp, readFlag, readIntOption, readStringOption, wantsHelp } from './args.ts';
 import { getSourceConfigEntry, getSyncRepoRoot, loadSyncConfig, type SyncConfig, type Logger } from './config.ts';
-import { createMirrorMergeLogger, getWorkDirectory, setMirrorMergeUtf8Environment } from './log.ts';
+import { createMirrorMergeLogger, getWorkDirectory, setMirrorMergeUtf8Environment, shouldLogQueueProgress } from './log.ts';
 import { getMirrorTipSha, getSourceReplayHistory } from './history.ts';
 import {
   buildMirrorCommitParentMap,
@@ -51,6 +51,7 @@ export interface MirrorMergeOptions {
   Logger: Logger;
   Clean?: boolean;
   DryRun?: boolean;
+  Push?: boolean;
   SkipFetch?: boolean;
   MaxCommits?: number;
   DestinationPath?: string;
@@ -82,13 +83,14 @@ export function formatMirrorMergeCursorSummary(
 export async function runMirrorMerge(input: MirrorMergeOptions): Promise<MirrorMergeResult> {
   const clean = Boolean(input.Clean);
   const dryRun = Boolean(input.DryRun);
+  const push = Boolean(input.Push);
   const skipFetch = Boolean(input.SkipFetch);
   const maxCommits = input.MaxCommits ?? 0;
   const config = input.Config;
   const logger = input.Logger;
   const replayBranch = config.Destination.ReplayTip;
 
-  logger.write(`Mirror-Merge start (clean=${clean} dryRun=${dryRun} skipFetch=${skipFetch})`);
+  logger.write(`Mirror-Merge start (clean=${clean} dryRun=${dryRun} push=${push} skipFetch=${skipFetch})`);
 
   const mirrorPaths = new Map<string, string>();
   for (const source of config.Sources) {
@@ -110,6 +112,11 @@ export async function runMirrorMerge(input: MirrorMergeOptions): Promise<MirrorM
     SkipFetch: skipFetch,
     Logger: logger
   });
+
+  for (const source of config.Sources) {
+    logger.write(`Mirror ${source.SortKey}: ${mirrorPaths.get(source.SortKey)}`);
+  }
+  logger.write(`Destination: ${destPath}`);
 
   initializeDestinationAlternates(destPath, [...mirrorPaths.values()]);
   ensureDestinationBaseCommit(destPath, config, logger);
@@ -309,7 +316,7 @@ export async function runMirrorMerge(input: MirrorMergeOptions): Promise<MirrorM
       }
     }
 
-    if ((index + 1) % 100 === 0) {
+    if (shouldLogQueueProgress(index + 1, queue.length)) {
       const processed = index + 1;
       const remaining = queue.length - processed;
       logger.write(`Progress: ${processed}/${queue.length} (${replayed} replayed, ${remaining} remaining)`);
@@ -332,8 +339,12 @@ export async function runMirrorMerge(input: MirrorMergeOptions): Promise<MirrorM
   });
 
   logger.write(`Replayed ${replayed} commit(s); tip=${replayTip.slice(0, 8)}`);
-  logger.write('Pushing destination branches');
-  pushDestinationBranches(destPath, config, clean || isFullReplay);
+  if (push) {
+    logger.write('Pushing destination branches');
+    pushDestinationBranches(destPath, config, clean || isFullReplay);
+  } else {
+    logger.write('Skipping push (pass --push to publish destination branches)');
+  }
   logger.write('Mirror-Merge done.');
 
   return { Status: 'done', Processed: queue.length, Replayed: replayed, TipSha: replayTip };
@@ -364,6 +375,7 @@ export async function runMirrorMergeCli(): Promise<void> {
       Logger: logger,
       Clean: readFlag(args, '--clean'),
       DryRun: readFlag(args, '--dry-run'),
+      Push: readFlag(args, '--push'),
       SkipFetch: readFlag(args, '--skip-fetch'),
       MaxCommits: readIntOption(args, '--max-commits', 0),
       DestinationPath: readStringOption(args, '--destination-path')

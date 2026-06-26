@@ -29,11 +29,11 @@ export function initializeMirrorRepository(input: {
   const url = getMirrorCloneUrlForSource(input.Config, input.Source);
 
   if (!existsSync(mirrorPath)) {
-    input.Logger.write(`Cloning mirror ${input.Source.SortKey} (${url})`);
+    input.Logger.write(`Cloning mirror ${input.Source.SortKey} to ${mirrorPath} (${url})`);
     runGit(null, ['clone', url, mirrorPath], {}, 5, input.Logger);
     setGitRepoUtf8Encoding(mirrorPath);
   } else if (!input.SkipFetch) {
-    input.Logger.write(`Fetching mirror ${input.Source.SortKey}`);
+    input.Logger.write(`Fetching mirror ${input.Source.SortKey} (${mirrorPath})`);
     runGit(mirrorPath, ['fetch', 'origin', '--prune'], {}, 5, input.Logger);
   }
 
@@ -51,6 +51,7 @@ export function initializeDestinationRepository(input: {
   if (input.DestinationPath) {
     const destPath = realpathSync(input.DestinationPath);
     if (!input.SkipFetch) {
+      input.Logger.write(`Fetching destination (${destPath})`);
       runGit(destPath, ['fetch', 'origin', '--prune'], {}, 5, input.Logger);
     }
     setGitRepoUtf8Encoding(destPath);
@@ -63,10 +64,11 @@ export function initializeDestinationRepository(input: {
   const url = getDestinationCloneUrl(input.Config);
 
   if (!existsSync(destPath)) {
-    input.Logger.write(`Cloning destination (${url})`);
+    input.Logger.write(`Cloning destination to ${destPath} (${url})`);
     runGit(null, ['clone', url, destPath], {}, 5, input.Logger);
     setGitRepoUtf8Encoding(destPath);
   } else if (!input.SkipFetch) {
+    input.Logger.write(`Fetching destination (${destPath})`);
     runGit(destPath, ['fetch', 'origin', '--prune'], {}, 5, input.Logger);
   }
 

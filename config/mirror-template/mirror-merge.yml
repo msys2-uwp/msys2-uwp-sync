@@ -84,7 +84,7 @@ jobs:
       - name: Run mirror merge
         working-directory: tooling
         run: |
-          args=(--destination-path "$GITHUB_WORKSPACE/destination")
+          args=(--destination-path "$GITHUB_WORKSPACE/destination" --push)
           if [ "${{ inputs.clean }}" = "true" ]; then
             args+=(--clean)
           fi
