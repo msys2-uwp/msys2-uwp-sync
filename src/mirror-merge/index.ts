@@ -2,7 +2,7 @@ import { join } from 'node:path';
 
 import { performance } from 'node:perf_hooks';
 
-import { readFlag, readIntOption, readStringOption } from './args.ts';
+import { printMirrorMergeCliHelp, readFlag, readIntOption, readStringOption, wantsHelp } from './args.ts';
 import { getSourceConfigEntry, getSyncRepoRoot, loadSyncConfig, type SyncConfig, type Logger } from './config.ts';
 import { createMirrorMergeLogger, getWorkDirectory, setMirrorMergeUtf8Environment } from './log.ts';
 import { getMirrorTipSha, getSourceReplayHistory } from './history.ts';
@@ -342,6 +342,11 @@ export async function runMirrorMerge(input: MirrorMergeOptions): Promise<MirrorM
 export async function runMirrorMergeCli(): Promise<void> {
   setMirrorMergeUtf8Environment();
   const args = process.argv.slice(2);
+  if (wantsHelp(args)) {
+    printMirrorMergeCliHelp();
+    return;
+  }
+
   const repoRoot = getSyncRepoRoot();
   const config = loadSyncConfig(repoRoot);
   const logger = createMirrorMergeLogger(repoRoot, {
