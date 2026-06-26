@@ -3,10 +3,12 @@ import { resolve } from 'node:path';
 
 import { runGit, runGitText, githubSshPushUrl } from '../git/index.ts';
 import type { Logger } from '../git/log.ts';
+import { WORKFLOW_DISPATCH_MIRROR_SYNC } from '../types/constants.ts';
 import type { MirrorSyncBranchPair, MirrorSyncConfig } from '../types/mirror-sync-config.ts';
 
 export type { Logger } from '../git/log.ts';
 
+/** repository_dispatch event-type for Block 4 notify (mirror-sync -> mirror-merge). */
 export const MIRROR_MERGE_DISPATCH_EVENT = 'workflow_dispatch_mirror_merge';
 
 export interface MirrorSyncBranchResult {
@@ -75,6 +77,15 @@ export function getMirrorSyncNotify(config: MirrorSyncConfig): MirrorSyncResult[
 
 export function shouldDispatchMirrorMerge(result: Pick<MirrorSyncResult, 'Advanced' | 'Notify'>): boolean {
   return result.Advanced && result.Notify.Enabled;
+}
+
+export function verifyMirrorSyncEventType(eventType: string | undefined): void {
+  if (eventType === undefined) {
+    return;
+  }
+  if (eventType !== WORKFLOW_DISPATCH_MIRROR_SYNC) {
+    throw new Error(`Unsupported event_type: ${eventType} (expected ${WORKFLOW_DISPATCH_MIRROR_SYNC})`);
+  }
 }
 
 function getRefSha(repoPath: string, ref: string): string | null {
@@ -254,6 +265,8 @@ export function runMirrorSyncCli(): void {
   process.env.LC_ALL = 'C.UTF-8';
 
   const args = process.argv.slice(2);
+  const eventType = readStringOption(args, '--event-type');
+  verifyMirrorSyncEventType(eventType);
   const repoPath = resolve(readStringOption(args, '--repo-path') ?? process.cwd());
   const configPath = resolve(readStringOption(args, '--config') ?? `${repoPath}/.github/mirror-sync.json`);
   const logger = createMirrorSyncLogger();

@@ -35,8 +35,10 @@ Do not rewrite the base commit from sync tooling.
 
 ## Triggers
 
-- Primary: mirror repos dispatch on push (~1-5 min after upstream).
-- Fallback: mirror-poll on push/cron; hourly/daily reconciliation in `mirror-merge.yml` on branch `msys2-apiss-mirror-merge`.
+- Primary: Block 2 mirror-poll on tooling repo (~hourly cron, push to `main`).
+- Block 3 -> Block 4: `repository_dispatch` after package mirrors advance (`Notify.Enabled`).
+- Expect ~1 h end-to-end after upstream changes; sub-hour timing is not guaranteed.
+- Fallback: manual `workflow_dispatch` on mirror-sync / mirror-merge.
 
 ## References
 

@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Mirror block modules
 
-Blocks under `src/mirror-poll/`, `src/mirror-sync/`, and `src/mirror-merge/` are
+Blocks under `src/mirror-init/`, `src/mirror-poll/`, `src/mirror-sync/`, and `src/mirror-merge/` are
 self-contained pipeline stages.
 
 ## Imports

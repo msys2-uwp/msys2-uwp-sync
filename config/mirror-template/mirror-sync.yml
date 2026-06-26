@@ -1,17 +1,29 @@
 name: Mirror sync from upstream
 
-# Install on mirror repo branch msys2-apiss-sync (workflows live here, not on master).
-# Copy this file to: msys2-apiss-sync/.github/workflows/mirror-sync.yml
-# Copy a per-repo config to: msys2-apiss-sync/.github/mirror-sync.json
-#   (from config/mirror-sync/<repo-name>.json in msys2-apiss-sync; applied by yarn fetch-mirrors)
+# Install on mirror repo branch msys2-apiss-mirror-sync (workflows live here, not on master).
+# Copy this file to: .github/workflows/mirror-sync.yml on that branch
+# Copy a per-repo config to: .github/mirror-sync.json
+#   (from config/mirror-sync/<repo-name>.json in msys2-apiss-sync; applied by yarn mirror-init)
 #
 # master (or configured mirror branches) holds upstream history only;
 # do not commit workflows to mirrored branches.
 #
-# Schedule: msys2-apiss-sync mirror-poll.yml triggers this via workflow_dispatch.
+# Block 3 CLI bundle: .github/toolings/ (installed by yarn mirror-init on this branch).
+#
+# Triggers (do not confuse the two dispatch names):
+#   Block 2 -> Block 3: Actions workflow_dispatch API on ref msys2-apiss-mirror-sync
+#     with inputs.event_type=workflow_dispatch_mirror_sync (yarn mirror-poll / mirror-poll.yml).
+#   Block 3 -> Block 4: repository_dispatch event-type workflow_dispatch_mirror_merge
+#     (Notify downstream step below; package mirrors only).
 
 on:
   workflow_dispatch:
+    inputs:
+      event_type:
+        description: 'Block 2 dispatch label (not Block 4 repository_dispatch event-type)'
+        required: false
+        default: workflow_dispatch_mirror_sync
+        type: string
 
 permissions:
   contents: write
@@ -21,11 +33,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
-      - name: Checkout msys2-apiss-sync branch
+      - name: Log trigger
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "event_type=${{ inputs.event_type }}"
+
+      - name: Checkout mirror repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          # Package mirrors: SYNC_DISPATCH_TOKEN for repository_dispatch to msys2-apiss-sync.
+          # Optional PAT with contents:write on this mirror; falls back to github.token.
           token: ${{ secrets.SYNC_DISPATCH_TOKEN || github.token }}
 
       - name: Read push transport
@@ -34,7 +51,7 @@ jobs:
           set -euo pipefail
           CONFIG=".github/mirror-sync.json"
           if [ ! -f "${CONFIG}" ]; then
-            echo "Missing ${CONFIG} on msys2-apiss-sync branch"
+            echo "Missing ${CONFIG} on msys2-apiss-mirror-sync branch"
             exit 1
           fi
           PUSH_VIA_SSH="$(jq -r '.PushViaSsh // false' "${CONFIG}")"
@@ -46,135 +63,30 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.MIRROR_PUSH_SSH_KEY }}
 
-      - name: Sync from upstream
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '26'
+
+      - name: Run mirror sync
         id: sync
         run: |
           set -euo pipefail
-          PUSH_VIA_SSH="${{ steps.push.outputs.via_ssh }}"
-          if [ "${PUSH_VIA_SSH}" = "true" ]; then
-            git remote set-url --push origin "git@github.com:${GITHUB_REPOSITORY}.git"
-            echo "Push transport: SSH (git@github.com)"
-          else
-            # Fallback when PushViaSsh is false: HTTP/2 can reset mid-pack (curl 92).
-            git config --global http.version HTTP/1.1
-            git config --global http.postBuffer 524288000
-            echo "Push transport: HTTPS"
-          fi
-
-          push_mirror_ref() {
-            local refspec="$1"
-            local attempt
-            for attempt in 1 2 3 4 5; do
-              if git push origin "${refspec}"; then
-                return 0
-              fi
-              echo "Push attempt ${attempt} failed; retrying in 30s..."
-              sleep 30
-            done
-            echo "Push failed after 5 attempts: ${refspec}"
-            return 1
-          }
-
-          push_mirror_tags() {
-            local attempt
-            for attempt in 1 2 3 4 5; do
-              if git push origin --tags; then
-                return 0
-              fi
-              echo "Tag push attempt ${attempt} failed; retrying in 30s..."
-              sleep 30
-            done
-            echo "Tag push failed after 5 attempts"
-            return 1
-          }
-
-          CONFIG=".github/mirror-sync.json"
-          if [ ! -f "${CONFIG}" ]; then
-            echo "Missing ${CONFIG} on msys2-apiss-sync branch"
+          CLI=".github/toolings/src/mirror-sync/cli.ts"
+          if [ ! -f "${CLI}" ]; then
+            echo "Missing ${CLI}; run yarn mirror-init on the tooling repo"
             exit 1
           fi
-
-          UPSTREAM_URL="$(jq -r '.UpstreamUrl' "${CONFIG}")"
-          SYNC_TAGS="$(jq -r '.SyncTags // true' "${CONFIG}")"
-          NOTIFY_ENABLED="$(jq -r '.Notify.Enabled // false' "${CONFIG}")"
-
-          if [ -z "${UPSTREAM_URL}" ] || [ "${UPSTREAM_URL}" = "null" ]; then
-            echo "UpstreamUrl is required in ${CONFIG}"
-            exit 1
-          fi
-
-          git remote add upstream "${UPSTREAM_URL}" 2>/dev/null || \
-            git remote set-url upstream "${UPSTREAM_URL}"
-
-          BRANCH_COUNT="$(jq '.Branches | length' "${CONFIG}")"
-          if [ "${BRANCH_COUNT}" -lt 1 ]; then
-            echo "Branches must contain at least one entry in ${CONFIG}"
-            exit 1
-          fi
-
-          ADVANCED=false
-          PRIMARY_SHA=""
-          PRIMARY_MIRROR_BRANCH=""
-
-          for i in $(seq 0 $((BRANCH_COUNT - 1))); do
-            UPSTREAM_BRANCH="$(jq -r ".Branches[${i}].Upstream" "${CONFIG}")"
-            MIRROR_BRANCH="$(jq -r ".Branches[${i}].Mirror" "${CONFIG}")"
-            echo "Syncing ${UPSTREAM_BRANCH} -> ${MIRROR_BRANCH}"
-
-            git fetch upstream "${UPSTREAM_BRANCH}"
-            git fetch origin "${MIRROR_BRANCH}" 2>/dev/null || true
-
-            BEFORE="$(git rev-parse "origin/${MIRROR_BRANCH}" 2>/dev/null || true)"
-
-            AFTER="$(git rev-parse "upstream/${UPSTREAM_BRANCH}")"
-            if [ -n "${BEFORE}" ] && [ "${BEFORE}" = "${AFTER}" ]; then
-              echo "No upstream changes for ${MIRROR_BRANCH}."
-              continue
-            fi
-
-            echo "Advanced ${MIRROR_BRANCH} from ${BEFORE:-<none>} to ${AFTER}"
-            ADVANCED=true
-
-            push_mirror_ref "upstream/${UPSTREAM_BRANCH}:refs/heads/${MIRROR_BRANCH}"
-
-            if [ -z "${PRIMARY_SHA}" ]; then
-              PRIMARY_SHA="${AFTER}"
-              PRIMARY_MIRROR_BRANCH="${MIRROR_BRANCH}"
-            fi
-          done
-
-          if [ "${SYNC_TAGS}" = "true" ]; then
-            echo "Syncing tags from upstream"
-            git fetch upstream --tags
-            push_mirror_tags || true
-          fi
-
-          if [ "${ADVANCED}" = "true" ]; then
-            echo "advanced=true" >> "$GITHUB_OUTPUT"
-            echo "sha=${PRIMARY_SHA}" >> "$GITHUB_OUTPUT"
-            echo "ref=refs/heads/${PRIMARY_MIRROR_BRANCH}" >> "$GITHUB_OUTPUT"
-          else
-            echo "advanced=false" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ "${NOTIFY_ENABLED}" = "true" ]; then
-            echo "notify=true" >> "$GITHUB_OUTPUT"
-            echo "notify_repository=$(jq -r '.Notify.Repository' "${CONFIG}")" >> "$GITHUB_OUTPUT"
-            echo "notify_event_type=$(jq -r '.Notify.EventType // "workflow_dispatch_mirror_merge"' "${CONFIG}")" >> "$GITHUB_OUTPUT"
-          else
-            echo "notify=false" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ "${ADVANCED}" = "true" ] && [ "${NOTIFY_ENABLED}" = "true" ]; then
-            echo "dispatch_mirror_merge=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "dispatch_mirror_merge=false" >> "$GITHUB_OUTPUT"
-          fi
+          node "${CLI}" \
+            --repo-path "$GITHUB_WORKSPACE" \
+            --event-type "${{ inputs.event_type }}"
 
       - name: Notify downstream
         if: steps.sync.outputs.dispatch_mirror_merge == 'true'
         uses: peter-evans/repository-dispatch@v4
         with:
+          # Block 4: repository_dispatch event-type workflow_dispatch_mirror_merge
+          # (Block 2 uses Actions workflow_dispatch API to this workflow, not this event).
           token: ${{ secrets.SYNC_DISPATCH_TOKEN }}
           repository: ${{ steps.sync.outputs.notify_repository }}
           event-type: ${{ steps.sync.outputs.notify_event_type }}

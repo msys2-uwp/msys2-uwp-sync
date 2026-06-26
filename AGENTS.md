@@ -17,7 +17,7 @@ MSYS2 package history into `msys2-apiss/msys2-apiss`.
 - **Destination**: `msys2-apiss/msys2-apiss`, branch `upstream`
 - **Base commit**: `6fc20894663468a04dd4986a8b1c15a9d5ae8649` (parent of first replayed commit)
 - **Strategy**: deterministic date-ordered replay; same SHAs on every rebuild at same pins
-- **Triggers**: mirror push -> `repository_dispatch` (~1-5 min); hourly poll + daily reconciliation as fallback
+- **Triggers**: Block 2 mirror-poll (~hourly cron, push to `main`); Block 3 -> Block 4 `repository_dispatch` after mirrors advance. Plan ~1 h latency; manual `workflow_dispatch` fallback.
 - **Runtime**: Node.js 26+; TypeScript runs directly with Node type stripping
 - **State**: destination branches (`upstream`, `upstream-ports`, `upstream-ports-mingw`) hold replay progress and resume cursors; no checkpoint file
 

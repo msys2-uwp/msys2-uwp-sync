@@ -3,11 +3,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { Logger } from '../git/log.ts';
+import { GITHUB_API, MIRROR_SYNC_BRANCH, WORKFLOW_DISPATCH_MIRROR_SYNC } from '../types/constants.ts';
 import type { MirrorSyncConfig } from '../types/mirror-sync-config.ts';
-
-const MIRROR_SYNC_BRANCH = 'msys2-apiss-mirror-sync';
-const WORKFLOW_DISPATCH_MIRROR_SYNC = 'workflow_dispatch_mirror_sync';
-const GITHUB_API = 'https://api.github.com';
 
 export interface SyncConfig {
   Owner: string;
@@ -106,7 +103,12 @@ async function dispatchMirrorSync(owner: string, repo: string, logger: Logger): 
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref: MIRROR_SYNC_BRANCH })
+      body: JSON.stringify({
+        ref: MIRROR_SYNC_BRANCH,
+        inputs: {
+          event_type: WORKFLOW_DISPATCH_MIRROR_SYNC
+        }
+      })
     }
   );
   if (!response.ok) {

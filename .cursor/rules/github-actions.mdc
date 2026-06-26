@@ -12,10 +12,10 @@ Full copy-paste steps: [`docs/usage.md`](../docs/usage.md).
 
 | File | Purpose |
 |------|---------|
-| `mirror-poll.yml` | Push/cron/manual: runs `yarn mirror-poll` (dispatch when HEAD != upstream) |
-| `config/mirror-template/mirror-merge.yml` (installed as `.github/workflows/mirror-merge.yml` on branch `msys2-apiss-mirror-merge`) | `repository_dispatch`, hourly/daily cron, manual (`clean=true`) |
+| `mirror-poll.yml` | Push/cron (~hourly)/manual: runs `yarn mirror-poll` (dispatch when HEAD != upstream) |
+| `config/mirror-template/mirror-merge.yml` (installed as `.github/workflows/mirror-merge.yml` on branch `msys2-apiss-mirror-merge`) | `repository_dispatch`, manual (`clean=true`) |
 
-Dry-run manifest verification: run locally (`yarn sync --dry-run --skip-fetch`); see
+Dry-run manifest verification: run locally (`yarn mirror-merge --dry-run --skip-fetch`); see
 [`docs/run-local.md`](../docs/run-local.md).
 
 ## Mirror repos (separate repositories)
@@ -53,13 +53,27 @@ Long sync runs must not be cancelled by the next hourly cron. Scheduled runs
 skip when another `mirror-merge` job is already in progress; dispatch and
 manual runs queue until the current run finishes.
 
+## Dispatch events
+
+Two names appear in logs and config; they target different blocks and mechanisms:
+
+| Name | From | To | Mechanism |
+|------|------|-----|-----------|
+| `workflow_dispatch_mirror_sync` | Block 2 (`mirror-poll`) | Block 3 (`mirror-sync.yml` on mirror repo) | GitHub Actions **workflow_dispatch** API on ref `msys2-apiss-mirror-sync` |
+| `workflow_dispatch_mirror_merge` | Block 3 (`mirror-sync` notify) | Block 4 (`mirror-merge.yml` on destination) | **repository_dispatch** event-type (package mirrors with `Notify.Enabled`) |
+
+Block 2 never sends `repository_dispatch`. Block 3 notify never uses
+`workflow_dispatch_mirror_sync`. Manual Block 4 runs use `workflow_dispatch` on
+`mirror-merge.yml` (`gh workflow run ...`).
+
 ## Secrets (mirror repos only)
 
 Set on remote mirror repos with `gh secret set`; not used by local tooling.
 
 - `SYNC_DISPATCH_TOKEN`: **package mirrors only** (`MSYS2-packages`,
   `MINGW-packages`) where `Notify.Enabled` is true; `repository_dispatch` to
-  `msys2-apiss-sync` after mirror-sync advances content.
+  `msys2-apiss/msys2-apiss` (Block 4 on `msys2-apiss-mirror-merge`) after
+  mirror-sync advances content.
 - `MIRROR_PUSH_SSH_KEY`: mirrors with `PushViaSsh` true (e.g. gcc); deploy key
   for `git@github.com` push.
 - Mirror-only repos with `Notify.Enabled` false use `github.token` inside

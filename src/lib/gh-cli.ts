@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 
 import type { Logger } from './log.ts';
-import { MIRROR_SYNC_BRANCH } from './repos.ts';
+import { MIRROR_SYNC_BRANCH, WORKFLOW_DISPATCH_MIRROR_SYNC } from '../types/constants.ts';
 
 function runGh(args: string[]): { ok: boolean; stdout: string; stderr: string } {
   const result = spawnSync('gh', args, {
@@ -156,7 +156,9 @@ export function ghDispatchMirrorSyncWorkflow(
     '--repo',
     `${owner}/${repoName}`,
     '--ref',
-    MIRROR_SYNC_BRANCH
+    MIRROR_SYNC_BRANCH,
+    '-f',
+    `event_type=${WORKFLOW_DISPATCH_MIRROR_SYNC}`
   ]);
   if (result.ok) {
     return { ok: true };

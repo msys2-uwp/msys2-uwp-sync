@@ -74,7 +74,7 @@ SSH is used only for `git push` on repos with `PushViaSsh` true.
 
 ### 1. Refresh mirrors from upstream
 
-Mirrors auto-refresh every ~15 minutes via [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) on this repo (GitHub per-repo `*/5` cron is unreliable). Mirror-poll skips dispatch when each mirror content branch already matches upstream. Manual trigger on branch `msys2-apiss-sync` (workflows live there, not on `master`):
+Mirrors auto-refresh about hourly via [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) on this repo (`PollIntervalMinutes`: 60; GitHub cron is best-effort). Mirror-poll skips dispatch when each mirror content branch already matches upstream. Manual trigger on branch `msys2-apiss-mirror-sync` (workflows live there, not on `master`):
 
 ```bash
 gh workflow run mirror-sync.yml --repo msys2-apiss/MSYS2-packages --ref msys2-apiss-sync

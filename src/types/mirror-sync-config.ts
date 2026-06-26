@@ -16,6 +16,7 @@ export interface MirrorSyncConfig {
   Notify?: {
     Enabled?: boolean;
     Repository?: string;
+/** repository_dispatch event-type for Block 4 (mirror-merge); not Block 3 trigger. */
     EventType?: string;
   };
 }

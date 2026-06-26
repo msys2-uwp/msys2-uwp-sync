@@ -6,7 +6,7 @@
   ],
   "Notify": {
     "Enabled": true,
-    "Repository": "msys2-apiss/msys2-apiss-sync",
+    "Repository": "msys2-apiss/msys2-apiss",
     "EventType": "workflow_dispatch_mirror_merge"
   }
 }

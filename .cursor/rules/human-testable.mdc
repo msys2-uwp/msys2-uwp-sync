@@ -15,9 +15,8 @@ documentation-only instructions.
 
 ## Do
 
-- Provide runnable entry points: `yarn fetch-mirrors`,
-  `yarn retrieve-history`, `yarn merge-queue`, `yarn sync`, `yarn test`,
-  and `yarn typecheck`
+- Provide runnable entry points: `yarn mirror-init`, `yarn mirror-poll`,
+  `yarn mirror-sync`, `yarn mirror-merge`, `yarn test`, and `yarn typecheck`
 - Document operational runs in [`docs/usage.md`](../docs/usage.md) and local testing in
   [`docs/run-local.md`](../docs/run-local.md) (copy-paste, run, read `[sync]` / `[PASS]`
   / counts / tables)
@@ -40,8 +39,8 @@ documentation-only instructions.
 
 ## Agent behavior
 
-- After implementing sync logic, run the relevant command (`yarn fetch-mirrors`,
-  `yarn retrieve-history`, `yarn merge-queue`, `yarn sync`, `yarn test`,
-  or `yarn typecheck`) and report
+- After implementing sync logic, run the relevant command (`yarn mirror-init`,
+  `yarn mirror-poll`, `yarn mirror-sync`, `yarn mirror-merge`, `yarn test`, or
+  `yarn typecheck`) and report
   actual output (counts, errors)
 - Use `--skip-fetch` when mirrors already exist under `.work/mirrors/`

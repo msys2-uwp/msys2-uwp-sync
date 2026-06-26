@@ -11,10 +11,12 @@ import {
   runMirrorSync,
   shouldDispatchMirrorMerge,
   validateMirrorSyncConfig,
+  verifyMirrorSyncEventType,
   writeGitHubOutput,
   type Logger
 } from '../../src/mirror-sync/index.ts';
 import type { MirrorSyncConfig } from '../../src/types/mirror-sync-config.ts';
+import { WORKFLOW_DISPATCH_MIRROR_SYNC } from '../../src/types/constants.ts';
 
 const noopLogger: Logger = {
   write() {},
@@ -69,12 +71,12 @@ describe('getMirrorSyncNotify', () => {
     expect(getMirrorSyncNotify(mirrorConfig('https://example.com/upstream.git', {
       Notify: {
         Enabled: true,
-        Repository: 'msys2-apiss/msys2-apiss-sync',
+        Repository: 'msys2-apiss/msys2-apiss',
         EventType: 'workflow_dispatch_mirror_merge'
       }
     }))).toEqual({
       Enabled: true,
-      Repository: 'msys2-apiss/msys2-apiss-sync',
+      Repository: 'msys2-apiss/msys2-apiss',
       EventType: 'workflow_dispatch_mirror_merge'
     });
   });
@@ -83,11 +85,11 @@ describe('getMirrorSyncNotify', () => {
     expect(getMirrorSyncNotify(mirrorConfig('https://example.com/upstream.git', {
       Notify: {
         Enabled: true,
-        Repository: 'msys2-apiss/msys2-apiss-sync'
+        Repository: 'msys2-apiss/msys2-apiss'
       }
     }))).toEqual({
       Enabled: true,
-      Repository: 'msys2-apiss/msys2-apiss-sync',
+      Repository: 'msys2-apiss/msys2-apiss',
       EventType: 'workflow_dispatch_mirror_merge'
     });
   });
@@ -97,7 +99,7 @@ describe('shouldDispatchMirrorMerge', () => {
   test('is true only when mirror advanced and notify is enabled', () => {
     expect(shouldDispatchMirrorMerge({
       Advanced: true,
-      Notify: { Enabled: true, Repository: 'msys2-apiss/msys2-apiss-sync' }
+      Notify: { Enabled: true, Repository: 'msys2-apiss/msys2-apiss' }
     })).toBe(true);
     expect(shouldDispatchMirrorMerge({
       Advanced: true,
@@ -105,8 +107,19 @@ describe('shouldDispatchMirrorMerge', () => {
     })).toBe(false);
     expect(shouldDispatchMirrorMerge({
       Advanced: false,
-      Notify: { Enabled: true, Repository: 'msys2-apiss/msys2-apiss-sync' }
+      Notify: { Enabled: true, Repository: 'msys2-apiss/msys2-apiss' }
     })).toBe(false);
+  });
+});
+
+describe('verifyMirrorSyncEventType', () => {
+  test('accepts Block 2 dispatch label and skips when unset', () => {
+    expect(() => verifyMirrorSyncEventType(undefined)).not.toThrow();
+    expect(() => verifyMirrorSyncEventType(WORKFLOW_DISPATCH_MIRROR_SYNC)).not.toThrow();
+  });
+
+  test('rejects other event types', () => {
+    expect(() => verifyMirrorSyncEventType('workflow_dispatch_mirror_merge')).toThrow('Unsupported event_type');
   });
 });
 
@@ -194,7 +207,7 @@ describe('runMirrorSync', () => {
         Config: mirrorConfig(upstreamPath, {
           Notify: {
             Enabled: true,
-            Repository: 'msys2-apiss/msys2-apiss-sync'
+            Repository: 'msys2-apiss/msys2-apiss'
           }
         }),
         Logger: noopLogger
@@ -220,7 +233,7 @@ describe('writeGitHubOutput', () => {
         DispatchMirrorMerge: true,
         Notify: {
           Enabled: true,
-          Repository: 'msys2-apiss/msys2-apiss-sync',
+          Repository: 'msys2-apiss/msys2-apiss',
           EventType: 'workflow_dispatch_mirror_merge'
         },
         Branches: []

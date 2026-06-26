@@ -7,23 +7,17 @@
     "node": ">=26.0.0"
   },
   "scripts": {
-    "sync": "node src/mirror-merge/cli.ts",
-    "fetch-mirrors": "node src/cli/fetch-mirrors.ts",
+    "mirror-init": "node src/mirror-init/cli.ts",
+    "mirror-poll": "node src/mirror-poll/cli.ts",
     "mirror-sync": "node src/mirror-sync/cli.ts",
-    "fix-mirror-sync": "node src/cli/fix-mirror-sync.ts",
-    "retrieve-history": "node src/cli/retrieve-history.ts",
-    "merge-queue": "node src/cli/merge-queue.ts",
-    "apply-mirror-patch": "node src/cli/apply-mirror-patch.ts",
-    "prepare-benchmark": "node src/cli/prepare-benchmark.ts",
-    "save-replay-graph": "node src/cli/prepare-benchmark.ts --graph-only",
-    "fork-safe-benchmark": "node src/cli/fork-safe-benchmark.ts",
+    "mirror-merge": "node src/mirror-merge/cli.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^26.0.0",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vitest": "^3.2.4"
+    "@types/node": "^26.0.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   }
 }
