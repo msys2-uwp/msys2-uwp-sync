@@ -19,7 +19,7 @@ import {
   type SyncConfig
 } from './config.ts';
 import { parseReplayCommitSourceSha, getFirstParent } from './replay.ts';
-import { runGit, runGitText, testGitAncestor } from './git.ts';
+import { runGit, runGitText, testGitAncestor, githubSshPushUrl } from './git.ts';
 import type { Logger } from './log.ts';
 
 export const MIRROR_SYNC_BRANCH = 'msys2-apiss-mirror-sync';
@@ -480,17 +480,6 @@ function remoteGitBranchSha(url: string, branch: string): string | null {
   } catch {
     return null;
   }
-}
-
-const GITHUB_HTTPS_ORIGIN = /^https:\/\/github\.com\/([^/]+)\/(.+?)(?:\.git)?\/?$/;
-
-export function githubSshPushUrl(httpsOriginUrl: string): string | null {
-  const match = httpsOriginUrl.trim().match(GITHUB_HTTPS_ORIGIN);
-  if (!match) {
-    return null;
-  }
-  const repo = match[2]!.endsWith('.git') ? match[2]! : `${match[2]}.git`;
-  return `git@github.com:${match[1]}/${repo}`;
 }
 
 function ensureGithubSshPushUrl(mirrorPath: string, logger: Logger): void {

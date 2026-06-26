@@ -1,0 +1,33 @@
+---
+description: Mirror block modules (mirror-poll, mirror-sync, mirror-merge) import boundaries
+globs: "src/mirror-*/**/*.ts"
+alwaysApply: false
+---
+
+# Mirror block modules
+
+Blocks under `src/mirror-poll/`, `src/mirror-sync/`, and `src/mirror-merge/` are
+self-contained pipeline stages.
+
+## Imports
+
+Cross-module imports are limited to:
+
+- `../git/*` -- git subprocess helpers and `Logger`
+- `../types/*` -- shared types (e.g. `mirror-sync-config`, `replay-entry`)
+
+Also allowed:
+
+- Node.js built-ins
+- Relative imports within the same block (`./config.ts`, `./queue.ts`, ...)
+
+## Do not import
+
+- `../lib/*`, `../cli/*`, or other blocks (`../mirror-sync/*`, etc.)
+
+Shared helpers needed by a block belong in that block (or in `src/git/` /
+`src/types/` if truly shared). Do not pull Block 1 `repos.ts` or other lib code
+into mirror blocks.
+
+Orchestration that wires blocks together lives in `src/lib/` or `src/cli/`, not
+inside mirror block modules.

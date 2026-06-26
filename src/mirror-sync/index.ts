@@ -1,7 +1,7 @@
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { runGit, runGitText } from '../git/index.ts';
+import { runGit, runGitText, githubSshPushUrl } from '../git/index.ts';
 import type { Logger } from '../git/log.ts';
 import type { MirrorSyncBranchPair, MirrorSyncConfig } from '../types/mirror-sync-config.ts';
 
@@ -93,6 +93,47 @@ function ensureUpstreamRemote(repoPath: string, upstreamUrl: string): void {
   }
 }
 
+/** When PushViaSsh: use git@github.com push URL (auth via ssh-agent / MIRROR_PUSH_SSH_KEY in CI). */
+export function configureMirrorSyncPushTransport(
+  repoPath: string,
+  config: MirrorSyncConfig,
+  logger: Logger
+): void {
+  if (config.PushViaSsh) {
+    if (!process.env.SSH_AUTH_SOCK) {
+      logger.write(
+        'PushViaSsh: SSH_AUTH_SOCK is unset; load MIRROR_PUSH_SSH_KEY into ssh-agent before push',
+        'Warn'
+      );
+    }
+    let originUrl: string;
+    try {
+      originUrl = runGitText(repoPath, ['remote', 'get-url', 'origin']).trim();
+    } catch {
+      return;
+    }
+    const sshUrl = githubSshPushUrl(originUrl);
+    if (!sshUrl) {
+      logger.write('PushViaSsh: origin is not a GitHub HTTPS URL; skipping SSH push URL setup', 'Warn');
+      return;
+    }
+    let pushUrl = originUrl;
+    try {
+      pushUrl = runGitText(repoPath, ['remote', 'get-url', '--push', 'origin']).trim();
+    } catch {
+      // no separate push URL yet
+    }
+    if (pushUrl !== sshUrl) {
+      runGit(repoPath, ['remote', 'set-url', '--push', 'origin', sshUrl], {}, 5, logger);
+    }
+    logger.write(`Push transport: SSH (${sshUrl})`);
+    return;
+  }
+  runGit(null, ['config', '--global', 'http.version', 'HTTP/1.1'], {}, 1, logger);
+  runGit(null, ['config', '--global', 'http.postBuffer', '524288000'], {}, 1, logger);
+  logger.write('Push transport: HTTPS');
+}
+
 function syncMirrorBranch(input: {
   RepoPath: string;
   Branch: MirrorSyncBranchPair;
@@ -135,6 +176,7 @@ function syncMirrorBranch(input: {
 export function runMirrorSync(input: MirrorSyncOptions): MirrorSyncResult {
   validateMirrorSyncConfig(input.Config);
   ensureUpstreamRemote(input.RepoPath, input.Config.UpstreamUrl);
+  configureMirrorSyncPushTransport(input.RepoPath, input.Config, input.Logger);
 
   const branches = input.Config.Branches.map((branch) =>
     syncMirrorBranch({

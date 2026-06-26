@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
 import {
+  configureMirrorSyncPushTransport,
   getMirrorSyncNotify,
   mirrorBranchNeedsUpdate,
   runMirrorSync,
@@ -106,6 +107,29 @@ describe('shouldDispatchMirrorMerge', () => {
       Advanced: false,
       Notify: { Enabled: true, Repository: 'msys2-apiss/msys2-apiss-sync' }
     })).toBe(false);
+  });
+});
+
+describe('configureMirrorSyncPushTransport', () => {
+  test('sets GitHub SSH push URL when PushViaSsh is true', () => {
+    const root = mkdtempSync(join(tmpdir(), 'msys2-apiss-mirror-sync-ssh-'));
+    try {
+      const mirrorPath = join(root, 'mirror');
+      initRepo(mirrorPath);
+      runGit(mirrorPath, ['remote', 'add', 'origin', 'https://github.com/msys2-apiss/gcc.git']);
+
+      configureMirrorSyncPushTransport(
+        mirrorPath,
+        mirrorConfig('https://example.com/upstream.git', { PushViaSsh: true }),
+        noopLogger
+      );
+
+      expect(runGit(mirrorPath, ['remote', 'get-url', '--push', 'origin']).trim()).toBe(
+        'git@github.com:msys2-apiss/gcc.git'
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

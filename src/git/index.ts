@@ -143,3 +143,14 @@ function runGitInternal(
   const command = repoPath ? `git -C ${repoPath} ${gitArgs.join(' ')}` : `git ${gitArgs.join(' ')}`;
   throw new Error(`git command failed (${command}): ${lastOutput}`);
 }
+
+const GITHUB_HTTPS_ORIGIN = /^https:\/\/github\.com\/([^/]+)\/(.+?)(?:\.git)?\/?$/;
+
+export function githubSshPushUrl(httpsOriginUrl: string): string | null {
+  const match = httpsOriginUrl.trim().match(GITHUB_HTTPS_ORIGIN);
+  if (!match) {
+    return null;
+  }
+  const repo = match[2]!.endsWith('.git') ? match[2]! : `${match[2]}.git`;
+  return `git@github.com:${match[1]}/${repo}`;
+}
