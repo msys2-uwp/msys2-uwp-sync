@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { mirrorRepoNeedsSync, parseGitHubRepoFromUrl } from '../../src/mirror-poll/index.ts';
+import { mirrorRepoNeedsSync, mirrorRepoPollStatus, parseGitHubRepoFromUrl } from '../../src/mirror-poll/index.ts';
 import type { MirrorSyncConfig } from '../../src/types/mirror-sync-config.ts';
 
 function mirrorConfig(overrides: Partial<MirrorSyncConfig> = {}): MirrorSyncConfig {
@@ -64,10 +64,15 @@ describe('mirrorRepoNeedsSync', () => {
       RepoName: 'mirror',
       MirrorOwner: 'msys2-apiss',
       MirrorConfig: null
-    })).resolves.toBe(true);
+    })).resolves.toBe(false);
+    await expect(mirrorRepoPollStatus({
+      RepoName: 'mirror',
+      MirrorOwner: 'msys2-apiss',
+      MirrorConfig: null
+    })).resolves.toBe('invalid');
   });
 
-  test('returns true when upstream is not on GitHub', async () => {
+  test('returns invalid when upstream is not on GitHub', async () => {
     await expect(mirrorRepoNeedsSync({
       RepoName: 'gcc',
       MirrorOwner: 'msys2-apiss',
@@ -75,6 +80,14 @@ describe('mirrorRepoNeedsSync', () => {
         UpstreamUrl: 'https://gcc.gnu.org/git/gcc.git'
       }),
       GetMirrorSha: () => 'abc123'
-    })).resolves.toBe(true);
+    })).resolves.toBe(false);
+    await expect(mirrorRepoPollStatus({
+      RepoName: 'gcc',
+      MirrorOwner: 'msys2-apiss',
+      MirrorConfig: mirrorConfig({
+        UpstreamUrl: 'https://gcc.gnu.org/git/gcc.git'
+      }),
+      GetMirrorSha: () => 'abc123'
+    })).resolves.toBe('invalid');
   });
 });

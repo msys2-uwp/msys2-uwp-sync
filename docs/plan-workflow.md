@@ -132,8 +132,9 @@ All flows start from a **local checkout** of `msys2-apiss/msys2-apiss-sync` unle
 | `yarn mirror-poll [--repo <name>]` | Local checkout |
 | [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) cron / push to `main` | CI on tooling repo |
 
-Code: `src/mirror-poll/`. Uses `gh` and `mirrorRepoNeedsSync` (GitHub API for mirror
-tip; upstream from config URL). When SHAs differ, dispatch
+Code: `src/mirror-poll/`. Uses `gh` and `mirrorRepoPollStatus` (GitHub API tip
+compare when `UpstreamUrl` is GitHub; non-GitHub upstream logs **tips compare invalid**
+and skips dispatch). When SHAs differ, dispatch
 `workflow_dispatch_mirror_sync` on ref **`msys2-apiss-mirror-sync`**.
 
 CI: `GH_TOKEN` from `secrets.SYNC_DISPATCH_TOKEN` on `msys2-apiss/msys2-apiss-sync`

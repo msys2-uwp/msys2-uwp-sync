@@ -1,0 +1,12 @@
+{
+  "UpstreamUrl": "https://github.com/wbx-github/uclibc-ng.git",
+  "Url": "https://uclibc-ng.org/",
+  "Description": "Embedded C Library",
+  "PushViaSsh": false,
+  "Branches": [
+    { "Upstream": "master", "Mirror": "master" }
+  ],
+  "Notify": {
+    "Enabled": false
+  }
+}

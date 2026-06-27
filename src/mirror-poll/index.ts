@@ -49,13 +49,15 @@ function createLogger(): Logger {
   };
 }
 
-export async function mirrorRepoNeedsSync(input: {
+export type MirrorRepoPollStatus = 'match' | 'differ' | 'invalid';
+
+export async function mirrorRepoPollStatus(input: {
   RepoName: string;
   MirrorOwner: string;
   MirrorConfig: MirrorSyncConfig | null;
   GetUpstreamSha?: (upstreamUrl: string, branch: string) => string | null | Promise<string | null>;
   GetMirrorSha?: (repo: string, branch: string) => string | null | Promise<string | null>;
-}): Promise<boolean> {
+}): Promise<MirrorRepoPollStatus> {
   const getUpstreamSha =
     input.GetUpstreamSha ??
     (async (url, branch) => {
@@ -70,21 +72,38 @@ export async function mirrorRepoNeedsSync(input: {
     ((repo, branch) => fetchBranchSha(input.MirrorOwner, repo, branch));
 
   if (!input.MirrorConfig?.UpstreamUrl || !input.MirrorConfig.Branches?.length) {
-    return true;
+    return 'invalid';
+  }
+
+  if (!parseGitHubRepoFromUrl(input.MirrorConfig.UpstreamUrl)) {
+    return 'invalid';
   }
 
   for (const entry of input.MirrorConfig.Branches) {
     const upstreamSha = await getUpstreamSha(input.MirrorConfig.UpstreamUrl, entry.Upstream);
     if (!upstreamSha) {
-      return true;
+      return 'invalid';
     }
     const mirrorSha = await getMirrorSha(input.RepoName, entry.Mirror);
-    if (!mirrorSha || mirrorSha !== upstreamSha) {
-      return true;
+    if (!mirrorSha) {
+      return 'differ';
+    }
+    if (mirrorSha !== upstreamSha) {
+      return 'differ';
     }
   }
 
-  return false;
+  return 'match';
+}
+
+export async function mirrorRepoNeedsSync(input: {
+  RepoName: string;
+  MirrorOwner: string;
+  MirrorConfig: MirrorSyncConfig | null;
+  GetUpstreamSha?: (upstreamUrl: string, branch: string) => string | null | Promise<string | null>;
+  GetMirrorSha?: (repo: string, branch: string) => string | null | Promise<string | null>;
+}): Promise<boolean> {
+  return (await mirrorRepoPollStatus(input)) === 'differ';
 }
 
 export async function runMirrorPoll(input: { RepoFilter?: string } = {}): Promise<void> {
@@ -111,12 +130,17 @@ export async function runMirrorPoll(input: { RepoFilter?: string } = {}): Promis
       continue;
     }
     const mirrorConfig = loadMirrorSyncConfigFile(repoRoot, repo);
-    if (!(await mirrorRepoNeedsSync({
+    const status = await mirrorRepoPollStatus({
       RepoName: repo,
       MirrorOwner: mirrorOwner,
       MirrorConfig: mirrorConfig
-    }))) {
+    });
+    if (status === 'match') {
       logger.write(`${repo}: tips match`);
+      continue;
+    }
+    if (status === 'invalid') {
+      logger.write(`${repo}: tips compare invalid`);
       continue;
     }
     logger.write(`${repo}: tips differ`);
