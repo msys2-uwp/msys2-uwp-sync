@@ -188,6 +188,59 @@ not replace the per-mirror dispatch.
 Without **`--push`**: no GitHub push, no Block 3 dispatch. Use `yarn mirror-poll`, CI cron, or manual
 `mirror-poll.yml` dispatch later.
 
+## New mirror: mirror-sync dispatch 404
+
+When adding a mirror with **`--push`**, Block 3 dispatch may warn:
+
+```text
+mirror-sync.yml not registered yet; dispatch skipped
+```
+
+or **`gh workflow run`** returns **HTTP 404** (`workflow mirror-sync.yml not found on the
+default branch`).
+
+This is normal for **brand-new mirror repos**. It does **not** mean the YAML is missing or
+that you must push **`master`** (or the configured content branch) first.
+
+### What causes it
+
+- **`mirror-init --push` pushes only `msys2-apiss-mirror-sync`** (tooling branch). It does
+  not push the content branch (`master` or `Branches[].Mirror` in config).
+- `mirror-sync.yml` lives on **`msys2-apiss-mirror-sync`**, not on the content branch.
+- **`gh workflow run`** looks up the workflow in GitHub's **Actions registry**, which GitHub
+  builds **asynchronously** after the first tooling-branch push. Until registered, the API
+  returns 404 even though the file is already on the repo.
+
+### What does not fix it
+
+- **Pushing the content branch first** is not required. The first successful **`mirror-sync`**
+  run fills that branch. Pushing it alone does not guarantee registration or dispatch.
+
+### What to do
+
+1. Run **`yarn mirror-init --push --repo <name>`** (or full **`--push`**).
+2. If dispatch is skipped or **`gh workflow run`** returns 404, wait a few minutes and
+   **re-run the same command** (add **`--skip-fetch`** when the local clone is already
+   ready):
+
+   ```bash
+   yarn mirror-init --push --repo <name> --skip-fetch
+   ```
+
+3. Or dispatch manually once GitHub has registered the workflow:
+
+   ```bash
+   gh workflow run mirror-sync.yml --repo msys2-apiss/<repo> --ref msys2-apiss-mirror-sync \
+     -f event_type=workflow_dispatch_mirror_sync
+   ```
+
+4. Optional check: `gh api repos/msys2-apiss/<repo>/actions/workflows -q ".total_count"`
+   returns **`1`** when indexed (the count can lag behind a successful dispatch).
+
+On retry, dispatch may temporarily set the GitHub default branch to
+**`msys2-apiss-mirror-sync`**, then restore the content branch when it exists on origin
+(see [With `--push`](#with-push-after-all-targets-initialized) above).
+
 ## Manual equivalent (one repo)
 
 Per mirror after push ([Tooling branch layout](#tooling-branch-layout) on **`msys2-apiss-mirror-sync`**):
@@ -197,9 +250,10 @@ gh workflow run mirror-sync.yml --repo msys2-apiss/<repo> --ref msys2-apiss-mirr
   -f event_type=workflow_dispatch_mirror_sync
 ```
 
-If dispatch fails because the workflow is not registered yet, PATCH default branch to
-`msys2-apiss-mirror-sync`, retry dispatch, then PATCH back to the content branch (`master`
-or configured `Branches[].Mirror`).
+If dispatch fails because the workflow is not registered yet, see
+[New mirror: mirror-sync dispatch 404](#new-mirror-mirror-sync-dispatch-404) (wait and re-run
+**`mirror-init --push`**, or PATCH default branch to **`msys2-apiss-mirror-sync`**, retry,
+then restore the content branch).
 
 ## Related
 
