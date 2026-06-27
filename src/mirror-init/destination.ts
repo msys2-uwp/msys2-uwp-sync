@@ -7,6 +7,7 @@ import {
 } from './config.ts';
 import { MIRROR_MERGE_BRANCH } from '../types/constants.ts';
 import { isToolingLayoutValid, firstCommitOfBranch } from './layout.ts';
+import { applyToolings, MIRROR_MERGE_TOOLINGS_SPEC, toolingsMatch } from './toolings.ts';
 import {
   defaultBranchRef,
   ensureOriginWorkingCopy,
@@ -46,7 +47,8 @@ function applyMirrorMergeTemplate(input: {
   const defaultRef = defaultBranchRef(input.RepoPath, input.DefaultBranch);
   if (
     isToolingLayoutValid(input.RepoPath, defaultRef, MIRROR_MERGE_BRANCH) &&
-    mergeWorkflowMatchesTemplate(input.RepoPath, templatePath)
+    mergeWorkflowMatchesTemplate(input.RepoPath, templatePath) &&
+    toolingsMatch(input.RepoPath, input.RepoRoot, MIRROR_MERGE_TOOLINGS_SPEC)
   ) {
     return false;
   }
@@ -55,7 +57,8 @@ function applyMirrorMergeTemplate(input: {
   const workflowsDir = join(input.RepoPath, '.github', 'workflows');
   mkdirSync(workflowsDir, { recursive: true });
   copyFileSync(templatePath, join(workflowsDir, 'mirror-merge.yml'));
-  runGit(input.RepoPath, ['add', '.github/workflows/mirror-merge.yml'], {}, 5, input.Logger);
+  applyToolings(input.RepoPath, input.RepoRoot, MIRROR_MERGE_TOOLINGS_SPEC, input.Logger);
+  runGit(input.RepoPath, ['add', '-A', '.github'], {}, 5, input.Logger);
   runGit(input.RepoPath, ['commit', '-m', MIRROR_MERGE_COMMIT_MESSAGE], {}, 5, input.Logger);
   return true;
 }

@@ -24,7 +24,7 @@ import {
   refExists
 } from './layout.ts';
 import { ghRemoteHasBranch, ghRepoClone } from '../git/gh.ts';
-import { applyMirrorSyncToolings, mirrorSyncToolingsMatch } from './toolings.ts';
+import { applyToolings, MIRROR_SYNC_TOOLINGS_SPEC, toolingsMatch } from './toolings.ts';
 import {
   defaultBranchRef,
   ensureToolingBranchCheckout,
@@ -72,7 +72,7 @@ function mirrorSyncFilesMatchTemplates(
     JSON.stringify(JSON.parse(readFileSync(configPath, 'utf8')));
   const ymlEqual =
     normalizeText(readFileSync(mirrorYml, 'utf8')) === normalizeText(readFileSync(workflowPath, 'utf8'));
-  return jsonEqual && ymlEqual && mirrorSyncToolingsMatch(mirrorPath, toolingsRoot);
+  return jsonEqual && ymlEqual && toolingsMatch(mirrorPath, toolingsRoot, MIRROR_SYNC_TOOLINGS_SPEC);
 }
 
 function copyMirrorSyncTemplates(mirrorPath: string, repoRoot: string, repoName: string, logger: Logger): void {
@@ -83,7 +83,7 @@ function copyMirrorSyncTemplates(mirrorPath: string, repoRoot: string, repoName:
   mkdirSync(workflowsDir, { recursive: true });
   copyFileSync(configPath, join(githubDir, 'mirror-sync.json'));
   copyFileSync(workflowPath, join(workflowsDir, 'mirror-sync.yml'));
-  applyMirrorSyncToolings(mirrorPath, getSyncRepoRoot(), logger);
+  applyToolings(mirrorPath, getSyncRepoRoot(), MIRROR_SYNC_TOOLINGS_SPEC, logger);
   logger.write(`Applied config/mirror-sync/${repoName}.json to ${mirrorPath}`);
 }
 
