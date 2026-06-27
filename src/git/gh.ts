@@ -110,12 +110,23 @@ export function ghGetBranchSha(owner: string, repoName: string, branch: string):
   return result.stdout || null;
 }
 
+export function ghGetRepoDefaultBranch(owner: string, repoName: string): string | null {
+  const result = runGh(['api', `repos/${owner}/${repoName}`, '--jq', '.default_branch']);
+  if (!result.ok) {
+    return null;
+  }
+  return result.stdout || null;
+}
+
 export function ghSetRepoDefaultBranch(
   owner: string,
   repoName: string,
   branch: string,
   logger: Logger
 ): void {
+  if (ghGetRepoDefaultBranch(owner, repoName) === branch) {
+    return;
+  }
   logger.write(`Setting default branch of ${owner}/${repoName} to ${branch}`);
   const result = runGh([
     'api',
@@ -276,7 +287,7 @@ export function ghDispatchMirrorBlock(
       'Warn'
     );
   } finally {
-    if (restoreDefaultBranch) {
+    if (toolingDefaultBranch && restoreDefaultBranch) {
       ghSetRepoDefaultBranch(owner, repoName, defaultBranch, logger);
     }
   }
