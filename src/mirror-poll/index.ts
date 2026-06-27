@@ -4,8 +4,7 @@ import {
   getMirrorPollRepoNames,
   getSyncRepoRoot,
   loadMirrorSyncConfigFile,
-  loadMirrorPollConfig,
-  loadSyncConfig
+  loadMirrorPollConfig
 } from '../mirror-init/config.ts';
 import type { Logger } from '../git/log.ts';
 import type { MirrorSyncConfig } from '../types/mirror-sync-config.ts';
@@ -96,9 +95,8 @@ export async function runMirrorPoll(input: { RepoFilter?: string } = {}): Promis
 
   const logger = createLogger();
   const repoRoot = getSyncRepoRoot();
-  const syncConfig = loadSyncConfig(repoRoot);
   const mirrorPollConfig = loadMirrorPollConfig(repoRoot);
-  const mirrorOwner = syncConfig.Owner;
+  const mirrorOwner = mirrorPollConfig.Owner;
 
   if (input.RepoFilter && !getMirrorPollRepoNames(mirrorPollConfig).includes(input.RepoFilter)) {
     throw new Error(`Unknown mirror repo: ${input.RepoFilter}`);

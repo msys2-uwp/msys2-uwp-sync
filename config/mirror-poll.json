@@ -1,4 +1,9 @@
 {
+  "Owner": "msys2-apiss",
+  "Destination": {
+    "Repo": "msys2-apiss",
+    "DefaultBranch": "main"
+  },
   "Repos": [
     "MSYS2-packages",
     "MINGW-packages",

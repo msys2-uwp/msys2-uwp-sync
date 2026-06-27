@@ -3,19 +3,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { MirrorSyncConfig } from '../types/mirror-sync-config.ts';
-import { MIRROR_MERGE_CONFIG_PATH, MIRROR_POLL_CONFIG_PATH } from '../types/constants.ts';
+import { MIRROR_POLL_CONFIG_PATH } from '../types/constants.ts';
 
-export interface SyncConfig {
+export interface MirrorPollConfig {
   Owner: string;
   Destination: {
     Repo: string;
-    Url?: string;
     DefaultBranch?: string;
-    ReplayTip?: string;
   };
-}
-
-export interface MirrorPollConfig {
   Repos: string[];
 }
 
@@ -25,25 +20,16 @@ export function getSyncRepoRoot(startPath = dirname(fileURLToPath(import.meta.ur
   let current = startPath;
   while (true) {
     try {
-      readFileSync(join(current, MIRROR_MERGE_CONFIG_PATH), 'utf8');
+      readFileSync(join(current, MIRROR_POLL_CONFIG_PATH), 'utf8');
       return current;
     } catch {
       const parent = dirname(current);
       if (parent === current) {
-        throw new Error(`Could not locate sync repo root (${MIRROR_MERGE_CONFIG_PATH} not found).`);
+        throw new Error(`Could not locate sync repo root (${MIRROR_POLL_CONFIG_PATH} not found).`);
       }
       current = parent;
     }
   }
-}
-
-export function getMirrorMergeConfigPath(repoRoot: string): string {
-  return join(repoRoot, MIRROR_MERGE_CONFIG_PATH);
-}
-
-export function loadSyncConfig(repoRoot = getSyncRepoRoot(), configPath?: string): SyncConfig {
-  const path = configPath ?? getMirrorMergeConfigPath(repoRoot);
-  return JSON.parse(readFileSync(path, 'utf8')) as SyncConfig;
 }
 
 export function getMirrorPollConfigPath(repoRoot: string): string {
@@ -59,12 +45,8 @@ export function getMirrorPollRepoNames(mirrorPollConfig: MirrorPollConfig): stri
   return mirrorPollConfig.Repos;
 }
 
-export function getMirrorCloneUrl(config: SyncConfig, repoName: string): string {
-  return `https://github.com/${config.Owner}/${repoName}.git`;
-}
-
-export function getDestinationCloneUrl(config: SyncConfig): string {
-  return config.Destination.Url ?? `https://github.com/${config.Owner}/${config.Destination.Repo}.git`;
+export function getMirrorCloneUrl(owner: string, repoName: string): string {
+  return `https://github.com/${owner}/${repoName}.git`;
 }
 
 export function getMirrorSyncConfigPath(repoRoot: string, repoName: string): string {

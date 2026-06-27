@@ -7,9 +7,8 @@ import {
   getMirrorPollRepoNames,
   getSyncRepoRoot,
   getWorkDirectory,
-  loadMirrorSyncConfigFile,
   loadMirrorPollConfig,
-  loadSyncConfig
+  loadMirrorSyncConfigFile
 } from './config.ts';
 import {
   initializeDestinationRepository,
@@ -44,14 +43,18 @@ function createLogger(): Logger {
 
 function pushDestinationRepo(input: {
   RepoPath: string;
-  Config: ReturnType<typeof loadSyncConfig>;
+  Owner: string;
+  DestinationRepo: string;
+  DefaultBranch: string;
   Logger: Logger;
 }): void {
-  const owner = input.Config.Owner;
-  const repo = input.Config.Destination.Repo;
-  const defaultBranch = input.Config.Destination.DefaultBranch ?? 'main';
-  pushDestinationToolingBranch({ RepoPath: input.RepoPath, Config: input.Config, Logger: input.Logger });
-  ghDispatchMirrorBlock(MIRROR_MERGE_BLOCK, owner, repo, defaultBranch, input.Logger);
+  pushDestinationToolingBranch({
+    RepoPath: input.RepoPath,
+    Owner: input.Owner,
+    DestinationRepo: input.DestinationRepo,
+    Logger: input.Logger
+  });
+  ghDispatchMirrorBlock(MIRROR_MERGE_BLOCK, input.Owner, input.DestinationRepo, input.DefaultBranch, input.Logger);
 }
 
 function pushMirrorRepo(input: {
@@ -59,15 +62,14 @@ function pushMirrorRepo(input: {
   RepoName: string;
   MirrorPath: string;
   ContentBranch: string;
-  Config: ReturnType<typeof loadSyncConfig>;
+  Owner: string;
   Logger: Logger;
 }): void {
-  const owner = input.Config.Owner;
   const mirrorConfig = loadMirrorSyncConfigFile(input.RepoRoot, input.RepoName);
-  if (!mirrorOriginHasContent(owner, input.RepoName, input.ContentBranch)) {
+  if (!mirrorOriginHasContent(input.Owner, input.RepoName, input.ContentBranch)) {
     input.Logger.write(`${input.RepoName}: new mirror; ensuring GitHub repo exists`);
     ghRepoCreate({
-      Owner: owner,
+      Owner: input.Owner,
       RepoName: input.RepoName,
       Description: mirrorConfig?.Description,
       Url: mirrorConfig?.Url,
@@ -75,7 +77,7 @@ function pushMirrorRepo(input: {
     });
   }
   pushMirrorSyncBranch(input.MirrorPath, input.RepoName, input.Logger);
-  ghDispatchMirrorBlock(MIRROR_SYNC_BLOCK, owner, input.RepoName, input.ContentBranch, input.Logger);
+  ghDispatchMirrorBlock(MIRROR_SYNC_BLOCK, input.Owner, input.RepoName, input.ContentBranch, input.Logger);
 }
 
 function runMirrorPollAfterPush(repoRoot: string, logger: Logger): void {
@@ -102,8 +104,10 @@ export async function runMirrorInit(input: {
   }
 
   const repoRoot = getSyncRepoRoot();
-  const config = loadSyncConfig(repoRoot);
   const mirrorPollConfig = loadMirrorPollConfig(repoRoot);
+  const owner = mirrorPollConfig.Owner;
+  const destinationRepo = mirrorPollConfig.Destination.Repo;
+  const defaultBranch = mirrorPollConfig.Destination.DefaultBranch ?? 'main';
   const work = getWorkDirectory(repoRoot);
   const logger = createLogger();
   logger.write('start');
@@ -115,16 +119,24 @@ export async function runMirrorInit(input: {
   const destinationPath = initializeDestinationRepository({
     RepoRoot: repoRoot,
     WorkDirectory: work,
-    Config: config,
+    Owner: owner,
+    DestinationRepo: destinationRepo,
+    DefaultBranch: defaultBranch,
     SkipFetch: Boolean(input.SkipFetch),
     Logger: logger
   });
   if (input.Push) {
-    pushDestinationRepo({ RepoPath: destinationPath, Config: config, Logger: logger });
+    pushDestinationRepo({
+      RepoPath: destinationPath,
+      Owner: owner,
+      DestinationRepo: destinationRepo,
+      DefaultBranch: defaultBranch,
+      Logger: logger
+    });
   }
   const mergeTip = runGitText(destinationPath, ['rev-parse', MIRROR_MERGE_BRANCH]).trim();
   logger.write(
-    `${config.Owner}/${config.Destination.Repo}: ${destinationPath} (${MIRROR_MERGE_BRANCH}=${mergeTip.slice(0, 8)})`
+    `${owner}/${destinationRepo}: ${destinationPath} (${MIRROR_MERGE_BRANCH}=${mergeTip.slice(0, 8)})`
   );
 
   for (const repoName of getMirrorPollRepoNames(mirrorPollConfig)) {
@@ -136,7 +148,7 @@ export async function runMirrorInit(input: {
       WorkDirectory: work,
       RepoName: repoName,
       ContentBranch: contentBranch,
-      Config: config,
+      Owner: owner,
       SkipFetch: Boolean(input.SkipFetch),
       Logger: logger
     });
@@ -146,7 +158,7 @@ export async function runMirrorInit(input: {
         RepoName: repoName,
         MirrorPath: mirrorPath,
         ContentBranch: contentBranch,
-        Config: config,
+        Owner: owner,
         Logger: logger
       });
     }

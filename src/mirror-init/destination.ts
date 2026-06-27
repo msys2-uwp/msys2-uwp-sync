@@ -2,8 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
-  getMirrorMergeWorkflowTemplatePath,
-  type SyncConfig
+  getMirrorMergeWorkflowTemplatePath
 } from './config.ts';
 import { MIRROR_MERGE_BRANCH } from '../types/constants.ts';
 import { isToolingLayoutValid, firstCommitOfBranch } from './layout.ts';
@@ -66,13 +65,15 @@ function applyMirrorMergeTemplate(input: {
 export function initializeDestinationRepository(input: {
   RepoRoot: string;
   WorkDirectory: string;
-  Config: SyncConfig;
+  Owner: string;
+  DestinationRepo: string;
+  DefaultBranch: string;
   SkipFetch: boolean;
   Logger: Logger;
 }): string {
-  const owner = input.Config.Owner;
-  const repo = input.Config.Destination.Repo;
-  const defaultBranch = input.Config.Destination.DefaultBranch ?? 'main';
+  const owner = input.Owner;
+  const repo = input.DestinationRepo;
+  const defaultBranch = input.DefaultBranch;
   const repoPath = join(input.WorkDirectory, 'mirror-merge-ci');
 
   ensureOriginWorkingCopy({
@@ -106,15 +107,14 @@ export function initializeDestinationRepository(input: {
 
 export function pushDestinationToolingBranch(input: {
   RepoPath: string;
-  Config: SyncConfig;
+  Owner: string;
+  DestinationRepo: string;
   Logger: Logger;
 }): void {
-  const owner = input.Config.Owner;
-  const repo = input.Config.Destination.Repo;
   pushToolingBranch({
     RepoPath: input.RepoPath,
     ToolingBranch: MIRROR_MERGE_BRANCH,
-    Label: `${owner}/${repo}`,
+    Label: `${input.Owner}/${input.DestinationRepo}`,
     Logger: input.Logger,
     ForceWithLease: true
   });

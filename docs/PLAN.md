@@ -78,9 +78,12 @@ the next run bootstraps from history root.
 
 Tests: `tests/sync/resume.test.ts`, `tests/sync/cursor-branch.test.ts`.
 
-**Single config file.** All sync constants live in [`config/mirror-merge.json`](../config/mirror-merge.json) only.
-Scripts read via `config.ts`; they never write config. Full file content is defined in
-**Phase 1a** below.
+**Config files.** Block 4 replay constants live in
+[`config/mirror-merge.json`](../config/mirror-merge.json). Blocks 1-2 (mirror-init,
+mirror-poll) read [`config/mirror-poll.json`](../config/mirror-poll.json) (`Owner`,
+`Destination`, `Repos`; duplicated with merge config where needed). Scripts read via
+`config.ts`; they never write config. Full file content is defined in **Phase 1a**
+below.
 
 **Not in mirror-merge.json:** GitHub Actions secrets (`SYNC_DISPATCH_TOKEN` on
 `msys2-apiss-sync` and package mirror repos; `MIRROR_PUSH_SSH_KEY` on mirror
@@ -637,6 +640,11 @@ Edit in git only when values change (rare).
 
 ```json
 {
+  "Owner": "msys2-apiss",
+  "Destination": {
+    "Repo": "msys2-apiss",
+    "DefaultBranch": "main"
+  },
   "Repos": [
     "MSYS2-packages",
     "MINGW-packages",
@@ -655,6 +663,8 @@ Edit in git only when values change (rare).
 
 | Key (`config/mirror-poll.json`) | Purpose |
 |-----|---------|
+| `Owner` | GitHub org for mirror repos and destination |
+| `Destination.*` | Destination repo and default branch for Block 1 init |
 | `Repos` | Polled mirror repo list for Block 2 and Block 1 init |
 | `config/mirror-sync/*.json` | Per-mirror upstream URL, branches, notify, description, homepage URL |
 

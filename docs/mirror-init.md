@@ -57,7 +57,7 @@ Each install branch (**`msys2-apiss-mirror-sync`**, **`msys2-apiss-mirror-merge`
 | Repo | Tooling branch | Default branch | Tooling under `.github/` |
 |------|----------------|----------------|--------------------------|
 | Each `msys2-apiss/*` mirror | **`msys2-apiss-mirror-sync`** | content branch (`master` or config) | `workflows/mirror-sync.yml`, `mirror-sync.json`, `toolings/` |
-| **`msys2-apiss/msys2-apiss`** (destination) | **`msys2-apiss-mirror-merge`** | **`main`** (`Destination.DefaultBranch` in [`config/mirror-merge.json`](../config/mirror-merge.json); GitHub default branch) | `workflows/mirror-merge.yml` only |
+| **`msys2-apiss/msys2-apiss`** (destination) | **`msys2-apiss-mirror-merge`** | **`main`** (`Destination.DefaultBranch` in [`config/mirror-poll.json`](../config/mirror-poll.json); GitHub default branch) | `workflows/mirror-merge.yml` only |
 
 Replay branches (`upstream`, `upstream-ports`, `upstream-ports-mingw`) and mirror
 content branches stay workflow-free. **`ReplayTip`** (`upstream`) is the Block 4 replay

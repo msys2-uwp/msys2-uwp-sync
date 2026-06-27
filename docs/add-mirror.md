@@ -96,10 +96,15 @@ Create `config/mirror-sync/my-tool.json` (copy from `glibc.json` or
 }
 ```
 
-Register the repo name in `config/mirror-poll.json` `Repos`:
+Register the repo name in `config/mirror-poll.json` `Repos` (and set `Owner` if not already `msys2-apiss`):
 
 ```json
 {
+  "Owner": "msys2-apiss",
+  "Destination": {
+    "Repo": "msys2-apiss",
+    "DefaultBranch": "main"
+  },
   "Repos": [
     "MSYS2-packages",
     "MINGW-packages",
@@ -108,7 +113,7 @@ Register the repo name in `config/mirror-poll.json` `Repos`:
 }
 ```
 
-Top-level `"Owner": "msys2-apiss"` applies to all mirror repos and the destination.
+Top-level `"Owner"` applies to all mirror repos and the destination.
 
 All mirror metadata (`UpstreamUrl`, `Url`, `Description`, branches, notify)
 lives in `config/mirror-sync/<repo-name>.json` only.

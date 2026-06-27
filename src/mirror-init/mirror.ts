@@ -11,8 +11,7 @@ import {
   getMirrorCloneUrl,
   getMirrorSyncConfigPath,
   getMirrorSyncWorkflowTemplatePath,
-  getSyncRepoRoot,
-  type SyncConfig
+  getSyncRepoRoot
 } from './config.ts';
 import { MIRROR_SYNC_BRANCH } from '../types/constants.ts';
 import {
@@ -254,14 +253,14 @@ export function initializeNamedMirrorRepository(input: {
   WorkDirectory: string;
   RepoName: string;
   ContentBranch: string;
-  Config: SyncConfig;
+  Owner: string;
   SkipFetch: boolean;
   Logger: Logger;
 }): string {
   const mirrorRoot = join(input.WorkDirectory, 'mirrors');
   mkdirSync(mirrorRoot, { recursive: true });
   const mirrorPath = join(mirrorRoot, input.RepoName);
-  const owner = input.Config.Owner;
+  const owner = input.Owner;
   const repoRoot = getSyncRepoRoot();
 
   if (existsSync(mirrorPath) && (!existsSync(join(mirrorPath, '.git')) || !refExists(mirrorPath, 'HEAD'))) {
@@ -281,7 +280,7 @@ export function initializeNamedMirrorRepository(input: {
       }
       bootstrapMirrorFromUpstreamRoot({
         UpstreamUrl: upstreamUrl,
-        OriginUrl: getMirrorCloneUrl(input.Config, input.RepoName),
+        OriginUrl: getMirrorCloneUrl(owner, input.RepoName),
         MirrorPath: mirrorPath,
         ContentBranch: input.ContentBranch,
         RepoName: input.RepoName,
