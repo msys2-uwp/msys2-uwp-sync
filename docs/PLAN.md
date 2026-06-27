@@ -642,8 +642,6 @@ Edit in git only when values change (rare).
     "MINGW-packages",
     "mingw-w64"
   ],
-  "SyncIntervalMinutes": 15,
-  "DispatchEventType": "workflow_dispatch_mirror_merge",
   "PollIntervalMinutes": 60,
   "DailyReconciliationCron": "0 3 * * *"
 }
@@ -660,8 +658,6 @@ Edit in git only when values change (rare).
 | Key (`config/mirror-poll.json`) | Purpose |
 |-----|---------|
 | `Repos` | Polled mirror repo list for Block 2 and Block 1 init |
-| `SyncIntervalMinutes` | Target mirror-sync interval (minutes) |
-| `DispatchEventType` | Block 3 notify event type for package mirrors |
 | `PollIntervalMinutes` | Hourly tolerance poll (60 -> cron `0 * * * *`) |
 | `DailyReconciliationCron` | Daily gap-check schedule |
 | `config/mirror-sync/*.json` | Per-mirror upstream URL, branches, notify, description, homepage URL |

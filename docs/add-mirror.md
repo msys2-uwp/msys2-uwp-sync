@@ -105,8 +105,6 @@ Register the repo name in `config/mirror-poll.json` `Repos`:
     "MINGW-packages",
     "my-tool"
   ],
-  "SyncIntervalMinutes": 15,
-  "DispatchEventType": "workflow_dispatch_mirror_merge",
   "PollIntervalMinutes": 60,
   "DailyReconciliationCron": "0 3 * * *"
 }

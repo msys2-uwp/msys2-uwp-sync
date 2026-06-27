@@ -17,8 +17,6 @@ export interface SyncConfig {
 
 export interface MirrorPollConfig {
   Repos: string[];
-  SyncIntervalMinutes: number;
-  DispatchEventType: string;
   PollIntervalMinutes: number;
   DailyReconciliationCron: string;
 }
