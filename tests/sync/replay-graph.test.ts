@@ -10,11 +10,11 @@ import {
   loadMirrorParentGraph,
   saveMirrorParentGraph,
   serializeCommitParentMap
-} from '../../src/lib/replay-graph.ts';
+} from '../../src/mirror-merge/replay-graph.ts';
 import {
-  buildCommitParentMapForShas,
-  precomputeSourceCursorBranchSafeFlags
-} from '../../src/lib/queue.ts';
+  buildCommitParentMapForShas
+} from './helpers/queue-algorithm.ts';
+import { precomputeSourceCursorBranchSafeFlags } from '../../src/mirror-merge/queue.ts';
 import type { ReplayEntry } from '../../src/mirror-merge/replay-entry.ts';
 
 function newPortsEntry(sha: string): ReplayEntry {

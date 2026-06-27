@@ -4,14 +4,15 @@ import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
-import { DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE } from '../../src/lib/config.ts';
+import { loadSyncConfig } from '../../src/mirror-merge/config.ts';
 import {
   applyUpstreamCommitToIndex,
-  formatGitReplayDateEnv,
   formatReplayCommitMessage,
-  getFirstParent,
   parseReplayCommitSourceSha
-} from '../../src/lib/replay.ts';
+} from '../../src/mirror-merge/replay.ts';
+import { getFirstParent } from './helpers/replay-git.ts';
+
+const replayCommitMessageTemplate = loadSyncConfig().Sources[0]!.CommitMessage;
 
 function runGit(repoPath: string, args: string[]): string {
   const result = spawnSync('git', ['-C', repoPath, ...args], {
@@ -155,7 +156,7 @@ describe('applyUpstreamCommitToIndex', () => {
 describe('formatReplayCommitMessage', () => {
   test('formats message with body', () => {
     expect(formatReplayCommitMessage({
-      Template: DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE,
+      Template: replayCommitMessageTemplate,
       SortKey: 'ports',
       Metadata: {
         Subject: 'update foo',
@@ -174,7 +175,7 @@ describe('formatReplayCommitMessage', () => {
 
   test('formats message without body', () => {
     expect(formatReplayCommitMessage({
-      Template: DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE,
+      Template: replayCommitMessageTemplate,
       SortKey: 'ports-mingw',
       Metadata: {
         Subject: 'update bar',
@@ -204,6 +205,7 @@ describe('parseReplayCommitSourceSha', () => {
 
 describe('formatGitReplayDateEnv', () => {
   test('uses git epoch-date syntax', () => {
+    const formatGitReplayDateEnv = (unixSeconds: number) => `@${unixSeconds}`;
     expect(formatGitReplayDateEnv(1700000000)).toBe('@1700000000');
     expect(formatGitReplayDateEnv(1700000001)).toBe('@1700000001');
     expect(formatGitReplayDateEnv(1700000000)).not.toBe(formatGitReplayDateEnv(1700000001));

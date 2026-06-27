@@ -4,25 +4,27 @@ import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
-import { getSyncRepoRoot, loadSyncConfig } from '../../src/lib/config.ts';
+import { getSyncRepoRoot, loadSyncConfig } from '../../src/mirror-merge/config.ts';
 import {
   advanceSyncCursorDestShasIfSafe,
   getDestinationBranchSha,
-  resolveSyncRetrieveCursorsFromBranches,
-  setDestinationBranchSha
-} from '../../src/lib/repos.ts';
+  resolveSyncRetrieveCursorsFromBranches
+} from '../../src/mirror-merge/repos.ts';
 import {
   buildCommitParentMapForShas,
-  buildFirstParentSpine,
-  precomputeReplayCursorBranchSafeFlags,
-  precomputeSourceCursorBranchSafeFlags,
   testSyncCursorBranchUpdateSafe
-} from '../../src/lib/queue.ts';
-import { DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE } from '../../src/lib/config.ts';
-import { formatReplayCommitMessage } from '../../src/lib/replay.ts';
+} from './helpers/queue-algorithm.ts';
+import { buildFirstParentSpine } from '../../src/mirror-merge/fork-safe.ts';
+import {
+  precomputeReplayCursorBranchSafeFlags,
+  precomputeSourceCursorBranchSafeFlags
+} from '../../src/mirror-merge/queue.ts';
+import { formatReplayCommitMessage } from '../../src/mirror-merge/replay.ts';
+import { setDestinationBranchSha } from './helpers/mirror-merge-repos.ts';
 import type { ReplayEntry } from '../../src/mirror-merge/replay-entry.ts';
 
 const config = loadSyncConfig(getSyncRepoRoot());
+const replayCommitMessageTemplate = config.Sources[0]!.CommitMessage;
 
 function runGit(repoPath: string, args: string[]): string {
   const result = spawnSync('git', ['-C', repoPath, ...args], {
@@ -86,7 +88,7 @@ function commitDestinationReplay(
     'commit',
     '-m',
     formatReplayCommitMessage({
-      Template: DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE,
+      Template: replayCommitMessageTemplate,
       SortKey: input.SortKey,
       Metadata: { Subject: input.Subject, Body: '' },
       UpstreamRepo: input.UpstreamRepo,

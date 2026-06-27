@@ -4,10 +4,19 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
-import { applyMirrorSyncTemplate, bootstrapMirrorFromUpstreamRoot, checkoutDestinationReplayBranch, checkoutNewDestinationBranchFromBase, mirrorOriginHasContent, MIRROR_SYNC_BRANCH, pushMirrorContentBranch, repairSyncBranchLayout, resolveUpstreamCursorSha, setDestinationBranchSha } from '../../src/lib/repos.ts';
-import type { Logger } from '../../src/lib/log.ts';
-import { DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE } from '../../src/lib/config.ts';
-import { formatReplayCommitMessage } from '../../src/lib/replay.ts';
+import { applyMirrorSyncTemplate, bootstrapMirrorFromUpstreamRoot, MIRROR_SYNC_BRANCH, pushMirrorContentBranch, repairSyncBranchLayout } from '../../src/mirror-init/repos.ts';
+import { checkoutDestinationReplayBranch } from '../../src/mirror-merge/repos.ts';
+import {
+  checkoutNewDestinationBranchFromBase,
+  resolveUpstreamCursorSha,
+  setDestinationBranchSha
+} from './helpers/mirror-merge-repos.ts';
+import { loadSyncConfig } from '../../src/mirror-merge/config.ts';
+import type { Logger } from '../../src/git/log.ts';
+import { formatReplayCommitMessage } from '../../src/mirror-merge/replay.ts';
+import { mirrorOriginUrlHasContent } from './helpers/mirror-origin.ts';
+
+const replayCommitMessageTemplate = loadSyncConfig().Sources[0]!.CommitMessage;
 
 function runGit(repoPath: string, args: string[]): string {
   const result = spawnSync('git', ['-C', repoPath, ...args], {
@@ -173,7 +182,7 @@ describe('resolveUpstreamCursorSha', () => {
         'commit',
         '-m',
         formatReplayCommitMessage({
-          Template: DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE,
+          Template: replayCommitMessageTemplate,
           SortKey: 'ports',
           Metadata: { Subject: 'sync foo', Body: '' },
           UpstreamRepo: 'msys2/MSYS2-packages',
@@ -283,7 +292,7 @@ describe('applyMirrorSyncTemplate', () => {
       const masterRoot = runGit(mirrorPath, ['rev-parse', 'HEAD']).trim();
       runGit(mirrorPath, ['update-ref', 'refs/remotes/origin/master', masterRoot]);
 
-      runGit(mirrorPath, ['checkout', '--orphan', MIRROR_SYNC_BRANCH]);
+      runGit(mirrorPath, ['checkout', '-b', MIRROR_SYNC_BRANCH, masterRoot]);
       mkdirSync(join(mirrorPath, '.github', 'workflows'), { recursive: true });
       writeFileSync(join(mirrorPath, '.github', 'workflows', 'old.yml'), 'old\n', 'utf8');
       runGit(mirrorPath, ['add', '.github']);
@@ -328,7 +337,7 @@ describe('applyMirrorSyncTemplate', () => {
       const masterRoot = runGit(mirrorPath, ['rev-parse', 'HEAD']).trim();
       runGit(mirrorPath, ['update-ref', 'refs/remotes/origin/master', masterRoot]);
 
-      runGit(mirrorPath, ['checkout', '--orphan', MIRROR_SYNC_BRANCH]);
+      runGit(mirrorPath, ['checkout', '-b', MIRROR_SYNC_BRANCH, masterRoot]);
       mkdirSync(join(mirrorPath, '.github', 'workflows'), { recursive: true });
       writeFileSync(join(mirrorPath, '.github', 'workflows', 'old.yml'), 'old\n', 'utf8');
       runGit(mirrorPath, ['add', '.github']);
@@ -401,13 +410,13 @@ describe('bootstrapMirrorFromUpstreamRoot', () => {
   });
 });
 
-describe('mirrorOriginHasContent', () => {
+describe('mirrorOriginUrlHasContent', () => {
   test('returns false for empty bare origin', () => {
     const root = mkdtempSync(join(tmpdir(), 'msys2-apiss-sync-origin-empty-'));
     try {
       const bare = join(root, 'origin.git');
       spawnSync('git', ['init', '--bare', bare], { encoding: 'utf8', windowsHide: true });
-      expect(mirrorOriginHasContent(bare, 'master')).toBe(false);
+      expect(mirrorOriginUrlHasContent(bare, 'master')).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -424,7 +433,7 @@ describe('mirrorOriginHasContent', () => {
       runGit(work, ['add', 'f.txt']);
       runGit(work, ['commit', '-m', 'init']);
       runGit(work, ['push', '-u', bare, 'master']);
-      expect(mirrorOriginHasContent(bare, 'master')).toBe(true);
+      expect(mirrorOriginUrlHasContent(bare, 'master')).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

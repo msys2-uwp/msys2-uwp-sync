@@ -4,14 +4,14 @@ import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
-import { loadSyncConfig } from '../../src/lib/config.ts';
+import { loadSyncConfig } from '../../src/mirror-merge/config.ts';
 import {
   formatMappedUnifiedDiff,
   listMappedPatchPaths,
   resolveMirrorSourceFromCli,
   rewriteUnifiedDiffPaths
-} from '../../src/lib/mapped-patch.ts';
-import { getFirstParent } from '../../src/lib/replay.ts';
+} from './helpers/mapped-patch.ts';
+import { getFirstParent } from './helpers/replay-git.ts';
 
 function runGit(repoPath: string, args: string[]): string {
   const result = spawnSync('git', ['-C', repoPath, ...args], {

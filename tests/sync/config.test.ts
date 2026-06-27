@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
-import { getMirrorPollRepoNames, getSyncRepoRoot, loadSyncConfig } from '../../src/lib/config.ts';
-import { getMirrorSyncConfigPath } from '../../src/lib/repos.ts';
+import { getMirrorPollRepoNames, getSyncRepoRoot, loadSyncConfig } from '../../src/mirror-init/config.ts';
+import { getMirrorSyncConfigPath } from '../../src/mirror-init/config.ts';
 
 describe('getMirrorPollRepoNames', () => {
   test('includes package mirrors and mirror-only repos from sync.json', () => {

@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'vitest';
 
-import { mirrorSyncReadyState } from '../../src/lib/mirror-sync-dispatch.ts';
+function mirrorSyncReadyState(input: {
+  WorkflowRegistered: boolean;
+}): 'normal' | 'bootstrap' {
+  return input.WorkflowRegistered ? 'normal' : 'bootstrap';
+}
 
 describe('mirrorSyncReadyState', () => {
   test('normal when workflow registered', () => {

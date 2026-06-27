@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
-import { convertFromUpstreamCommitLogMetadataText, parseGitCommitObject } from '../../src/lib/history.ts';
+import { convertFromUpstreamCommitLogMetadataText } from '../../src/mirror-merge/history.ts';
+import { parseGitCommitObject } from './helpers/history-parse.ts';
 
 const fieldSep = String.fromCharCode(0x1f);
 const recordSep = String.fromCharCode(0x1e);

@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { describe, expect, test, vi } from 'vitest';
 
-import { ensureGhMirrorRepo, ghCommandAvailable, ghRepoExists } from '../../src/lib/gh-cli.ts';
+import { ghCommandAvailable, ghRepoCreate, ghRepoExists } from '../../src/mirror-init/gh.ts';
 
 vi.mock('node:child_process', () => ({
   spawnSync: vi.fn()
@@ -22,7 +22,7 @@ describe('gh-cli', () => {
     expect(spawnSync).toHaveBeenCalledWith('gh', ['repo', 'view', 'msys2-apiss/aports'], expect.any(Object));
   });
 
-  test('ensureGhMirrorRepo creates repo when missing', () => {
+  test('ghRepoCreate creates repo when missing', () => {
     const logs: string[] = [];
     const logger = {
       write(message: string) {
@@ -57,8 +57,17 @@ describe('gh-cli', () => {
         output: ['', '', ''],
         signal: null,
         error: undefined
+      })
+      .mockReturnValueOnce({
+        status: 0,
+        stdout: '',
+        stderr: '',
+        pid: 1,
+        output: ['', '', ''],
+        signal: null,
+        error: undefined
       });
-    ensureGhMirrorRepo({
+    ghRepoCreate({
       Owner: 'msys2-apiss',
       RepoName: 'aports',
       Description: 'Alpine Linux aports repository',

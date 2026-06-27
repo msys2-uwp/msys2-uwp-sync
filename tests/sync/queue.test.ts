@@ -4,13 +4,13 @@ import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
-import { getFirstParent } from '../../src/lib/replay.ts';
+import { getFirstParent } from './helpers/replay-git.ts';
 import {
   buildMirrorCommitParentMap,
   getFirstParentFromMap,
-  getReplaySortRank,
   mergeReplayCommitQueues
-} from '../../src/lib/queue.ts';
+} from '../../src/mirror-merge/queue.ts';
+import { getReplaySortRank } from './helpers/queue-algorithm.ts';
 import type { ReplayEntry } from '../../src/mirror-merge/replay-entry.ts';
 
 function newTestQueueItem(input: {

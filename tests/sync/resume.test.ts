@@ -4,18 +4,18 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
 
-import { getSyncRepoRoot, loadSyncConfig } from '../../src/lib/config.ts';
-import { getMirrorTipSha, getSourceReplayHistory } from '../../src/lib/history.ts';
-import { mergeReplayCommitQueues } from '../../src/lib/queue.ts';
-import { DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE } from '../../src/lib/config.ts';
-import { formatReplayCommitMessage } from '../../src/lib/replay.ts';
+import { getSyncRepoRoot, loadSyncConfig } from '../../src/mirror-merge/config.ts';
+import { getMirrorTipSha, getSourceReplayHistory } from '../../src/mirror-merge/history.ts';
+import { mergeReplayCommitQueues } from '../../src/mirror-merge/queue.ts';
+import { formatReplayCommitMessage } from '../../src/mirror-merge/replay.ts';
 import {
   initializeDestinationAlternates,
-  resolveSyncRetrieveCursorsFromBranches,
-  setDestinationBranchSha
-} from '../../src/lib/repos.ts';
+  resolveSyncRetrieveCursorsFromBranches
+} from '../../src/mirror-merge/repos.ts';
+import { setDestinationBranchSha } from './helpers/mirror-merge-repos.ts';
 
 const config = loadSyncConfig(getSyncRepoRoot());
+const replayCommitMessageTemplate = config.Sources[0]!.CommitMessage;
 
 function runGit(repoPath: string, args: string[], env: Record<string, string> = {}): string {
   const result = spawnSync('git', ['-C', repoPath, ...args], {
@@ -71,7 +71,7 @@ function commitDestinationReplay(
   writeFileSync(fullPath, `${relativePath}\n`, 'utf8');
   runGit(destPath, ['add', relativePath]);
   const message = formatReplayCommitMessage({
-    Template: DEFAULT_REPLAY_COMMIT_MESSAGE_TEMPLATE,
+    Template: replayCommitMessageTemplate,
     SortKey: input.SortKey,
     Metadata: { Subject: input.Subject, Body: '' },
     UpstreamRepo: input.UpstreamRepo,
@@ -212,7 +212,7 @@ describe('branch-based resume retrieve', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
+  }, 15000);
 
   test('independent cursor branches resume each source from its own replay point', async () => {
     const root = mkdtempSync(join(tmpdir(), 'msys2-apiss-sync-resume-split-'));

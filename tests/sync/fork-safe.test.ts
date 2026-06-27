@@ -1,21 +1,21 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-import { getSyncRepoRoot } from '../../src/lib/config.ts';
-import { getWorkDirectory } from '../../src/lib/log.ts';
+import { getSyncRepoRoot } from '../../src/mirror-init/config.ts';
+import { getWorkDirectory } from '../../src/mirror-init/config.ts';
+import { precomputeForkSafeFlagsForQueue } from '../../src/mirror-merge/fork-safe.ts';
 import {
   buildReverseTopologicalQueueShas,
   precomputeForkSafeFlagsFromParentMap,
-  precomputeForkSafeFlagsForQueue,
   shasToMinimalQueueEntries
-} from '../../src/lib/fork-safe.ts';
+} from './helpers/fork-safe-algorithm.ts';
 import {
   deserializeCommitParentMap,
   getMirrorParentGraphCachePath,
-  loadSerializedMirrorParentGraph
-} from '../../src/lib/replay-graph.ts';
-import type { CommitParentMap } from '../../src/lib/queue.ts';
+  type SerializedMirrorParentGraph
+} from '../../src/mirror-merge/replay-graph.ts';
+import type { CommitParentMap } from '../../src/mirror-merge/queue.ts';
 
 function forkParentMap(): CommitParentMap {
   return new Map<string, readonly string[]>([
@@ -94,7 +94,7 @@ describe('saved parent map cache', () => {
       return;
     }
 
-    const serialized = loadSerializedMirrorParentGraph(portsCachePath)!;
+    const serialized = JSON.parse(readFileSync(portsCachePath, 'utf8')) as SerializedMirrorParentGraph;
     const parentMap = deserializeCommitParentMap(serialized);
     const shas = buildReverseTopologicalQueueShas(parentMap, serialized.TipSha);
     expect(shas.length).toBe(serialized.Parents.length);

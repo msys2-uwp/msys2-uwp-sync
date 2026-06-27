@@ -1,7 +1,8 @@
-import { getSourceConfigEntry, type SyncConfig } from './config.ts';
-import { runGitText } from './git.ts';
-import { convertToUnixLineEndings } from './log.ts';
-import { getDiffTreeEntries, getFirstParent } from './replay.ts';
+import { getSourceConfigEntry, type SyncConfig } from '../../../src/mirror-merge/config.ts';
+import { runGitText } from '../../../src/git/index.ts';
+import { convertToUnixLineEndings } from '../../../src/mirror-merge/log.ts';
+import { getDiffTreeEntries } from '../../../src/mirror-merge/replay.ts';
+import { getFirstParent } from './replay-git.ts';
 
 export interface ResolvedMirrorSource {
   SourceId: string;
@@ -87,11 +88,7 @@ export function listMappedPatchPaths(
 ): string[] {
   const paths: string[] = [];
   for (const entry of getDiffTreeEntries(mirrorPath, parent, commit)) {
-    if (entry.Kind === 'Delete') {
-      paths.push(`${destSubdir}/${entry.Path}`);
-    } else {
-      paths.push(`${destSubdir}/${entry.Path}`);
-    }
+    paths.push(`${destSubdir}/${entry.Path}`);
   }
   return paths;
 }
