@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { MIRROR_MERGE_CONFIG_PATH } from '../types/constants.ts';
+
 export type { Logger } from '../git/log.ts';
 
 export interface SourceConfigEntry {
@@ -24,30 +26,23 @@ export interface SyncConfig {
     ReplayTip: string;
   };
   Sources: SourceConfigEntry[];
-  Mirrors: {
-    Repos: string[];
-    SyncIntervalMinutes: number;
-    DispatchEventType: string;
-  };
   Replay: {
     MinReplayAgeMinutes?: number;
     SkipEmptyTreeDiff: boolean;
     LineEnding: string;
   };
-  PollIntervalMinutes: number;
-  DailyReconciliationCron: string;
 }
 
 export function getSyncRepoRoot(startPath = dirname(fileURLToPath(import.meta.url))): string {
   let current = startPath;
   while (true) {
     try {
-      readFileSync(join(current, 'config', 'sync.json'), 'utf8');
+      readFileSync(join(current, MIRROR_MERGE_CONFIG_PATH), 'utf8');
       return current;
     } catch {
       const parent = dirname(current);
       if (parent === current) {
-        throw new Error('Could not locate sync repo root (config/sync.json not found).');
+        throw new Error(`Could not locate sync repo root (${MIRROR_MERGE_CONFIG_PATH} not found).`);
       }
       current = parent;
     }
@@ -55,7 +50,7 @@ export function getSyncRepoRoot(startPath = dirname(fileURLToPath(import.meta.ur
 }
 
 export function loadSyncConfig(repoRoot = getSyncRepoRoot(), configPath?: string): SyncConfig {
-  const path = configPath ?? join(repoRoot, 'config', 'sync.json');
+  const path = configPath ?? join(repoRoot, MIRROR_MERGE_CONFIG_PATH);
   return JSON.parse(readFileSync(path, 'utf8')) as SyncConfig;
 }
 

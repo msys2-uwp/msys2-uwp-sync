@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { MirrorSyncConfig } from '../types/mirror-sync-config.ts';
+import { MIRROR_MERGE_CONFIG_PATH, MIRROR_POLL_CONFIG_PATH } from '../types/constants.ts';
 
 export interface SyncConfig {
   Owner: string;
@@ -12,9 +13,14 @@ export interface SyncConfig {
     DefaultBranch?: string;
     ReplayTip?: string;
   };
-  Mirrors: {
-    Repos: string[];
-  };
+}
+
+export interface MirrorPollConfig {
+  Repos: string[];
+  SyncIntervalMinutes: number;
+  DispatchEventType: string;
+  PollIntervalMinutes: number;
+  DailyReconciliationCron: string;
 }
 
 export { MIRROR_MERGE_BRANCH, MIRROR_SYNC_BRANCH } from '../types/constants.ts';
@@ -23,25 +29,38 @@ export function getSyncRepoRoot(startPath = dirname(fileURLToPath(import.meta.ur
   let current = startPath;
   while (true) {
     try {
-      readFileSync(join(current, 'config', 'sync.json'), 'utf8');
+      readFileSync(join(current, MIRROR_MERGE_CONFIG_PATH), 'utf8');
       return current;
     } catch {
       const parent = dirname(current);
       if (parent === current) {
-        throw new Error('Could not locate sync repo root (config/sync.json not found).');
+        throw new Error(`Could not locate sync repo root (${MIRROR_MERGE_CONFIG_PATH} not found).`);
       }
       current = parent;
     }
   }
 }
 
+export function getMirrorMergeConfigPath(repoRoot: string): string {
+  return join(repoRoot, MIRROR_MERGE_CONFIG_PATH);
+}
+
 export function loadSyncConfig(repoRoot = getSyncRepoRoot(), configPath?: string): SyncConfig {
-  const path = configPath ?? join(repoRoot, 'config', 'sync.json');
+  const path = configPath ?? getMirrorMergeConfigPath(repoRoot);
   return JSON.parse(readFileSync(path, 'utf8')) as SyncConfig;
 }
 
-export function getMirrorPollRepoNames(config: SyncConfig): string[] {
-  return config.Mirrors.Repos;
+export function getMirrorPollConfigPath(repoRoot: string): string {
+  return join(repoRoot, MIRROR_POLL_CONFIG_PATH);
+}
+
+export function loadMirrorPollConfig(repoRoot = getSyncRepoRoot(), configPath?: string): MirrorPollConfig {
+  const path = configPath ?? getMirrorPollConfigPath(repoRoot);
+  return JSON.parse(readFileSync(path, 'utf8')) as MirrorPollConfig;
+}
+
+export function getMirrorPollRepoNames(mirrorPollConfig: MirrorPollConfig): string[] {
+  return mirrorPollConfig.Repos;
 }
 
 export function getMirrorCloneUrl(config: SyncConfig, repoName: string): string {

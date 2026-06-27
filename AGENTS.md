@@ -36,7 +36,7 @@ MSYS2 package history into `msys2-apiss/msys2-apiss`.
 | Task | Location |
 |------|----------|
 | Sync logic | `src/cli/`, `src/lib/`, `src/types/` |
-| Config | `config/sync.json` |
+| Config | `config/mirror-merge.json`, `config/mirror-poll.json` |
 | Replay cursors | destination branches `upstream`, `upstream-ports`, `upstream-ports-mingw` |
 | CI | `.github/workflows/` |
 | Design changes | update `docs/PLAN.md` first |

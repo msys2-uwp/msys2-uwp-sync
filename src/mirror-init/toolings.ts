@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { MIRROR_SYNC_TOOLINGS_DIR } from '../types/constants.ts';
+import { MIRROR_MERGE_CONFIG_PATH, MIRROR_SYNC_TOOLINGS_DIR } from '../types/constants.ts';
 import type { Logger } from '../git/log.ts';
 
 export interface ToolingBundleSpec {
@@ -39,7 +39,7 @@ export const MIRROR_MERGE_TOOLINGS_SPEC: ToolingBundleSpec = {
     'src/mirror-merge',
     'src/git',
     'src/types',
-    'config/sync.json'
+    MIRROR_MERGE_CONFIG_PATH
   ]
 };
 

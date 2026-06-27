@@ -10,7 +10,7 @@ export function printMirrorPollCliHelp(): void {
   console.log(`Usage: yarn mirror-poll [options]
 
 Options:
-  --repo <name>             Single mirror from config/sync.json Mirrors.Repos
+  --repo <name>             Single mirror from config/mirror-poll.json Repos
   -h, --help                Show this help
 `);
 }

@@ -14,3 +14,9 @@ export const GITHUB_API = 'https://api.github.com';
 
 /** Block 3 TypeScript bundle installed on mirror branch by mirror-init. */
 export const MIRROR_SYNC_TOOLINGS_DIR = '.github/toolings';
+
+/** Block 4 replay config in the tooling repo and bundled toolings. */
+export const MIRROR_MERGE_CONFIG_PATH = 'config/mirror-merge.json';
+
+/** Block 2 poll config in the tooling repo. */
+export const MIRROR_POLL_CONFIG_PATH = 'config/mirror-poll.json';

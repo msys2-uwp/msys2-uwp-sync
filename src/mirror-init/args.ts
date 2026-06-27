@@ -11,7 +11,7 @@ export function printMirrorInitCliHelp(): void {
 
 Options:
   --push                    Push mirror branches, dispatch mirror-sync per mirror, then mirror-poll
-  --repo <name>             Single mirror from config/sync.json Mirrors.Repos
+  --repo <name>             Single mirror from config/mirror-poll.json Repos
   --skip-fetch              Skip git fetch origin during ensure-init
   -h, --help                Show this help
 `);

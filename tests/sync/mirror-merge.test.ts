@@ -35,18 +35,11 @@ const testConfig: SyncConfig = {
       CommitMessage: '[{SortKey}] {Subject}{BodyBlock}Source: {UpstreamRepo}@{UpstreamSha}'
     }
   ],
-  Mirrors: {
-    Repos: ['MSYS2-packages', 'MINGW-packages'],
-    SyncIntervalMinutes: 15,
-    DispatchEventType: 'workflow_dispatch_mirror_merge'
-  },
   Replay: {
     MinReplayAgeMinutes: 5,
     SkipEmptyTreeDiff: true,
     LineEnding: 'LF'
-  },
-  PollIntervalMinutes: 60,
-  DailyReconciliationCron: '0 3 * * *'
+  }
 };
 
 describe('resolveMirrorMergeMode', () => {

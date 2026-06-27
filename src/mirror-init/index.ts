@@ -8,6 +8,7 @@ import {
   getSyncRepoRoot,
   getWorkDirectory,
   loadMirrorSyncConfigFile,
+  loadMirrorPollConfig,
   loadSyncConfig
 } from './config.ts';
 import {
@@ -102,11 +103,12 @@ export async function runMirrorInit(input: {
 
   const repoRoot = getSyncRepoRoot();
   const config = loadSyncConfig(repoRoot);
+  const mirrorPollConfig = loadMirrorPollConfig(repoRoot);
   const work = getWorkDirectory(repoRoot);
   const logger = createLogger();
   logger.write('start');
 
-  if (input.RepoFilter && !getMirrorPollRepoNames(config).includes(input.RepoFilter)) {
+  if (input.RepoFilter && !getMirrorPollRepoNames(mirrorPollConfig).includes(input.RepoFilter)) {
     throw new Error(`Unknown mirror repo: ${input.RepoFilter}`);
   }
 
@@ -125,7 +127,7 @@ export async function runMirrorInit(input: {
     `${config.Owner}/${config.Destination.Repo}: ${destinationPath} (${MIRROR_MERGE_BRANCH}=${mergeTip.slice(0, 8)})`
   );
 
-  for (const repoName of getMirrorPollRepoNames(config)) {
+  for (const repoName of getMirrorPollRepoNames(mirrorPollConfig)) {
     if (input.RepoFilter && input.RepoFilter !== repoName) {
       continue;
     }

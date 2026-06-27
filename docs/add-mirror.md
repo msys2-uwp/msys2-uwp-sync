@@ -73,8 +73,8 @@ yarn fetch-mirrors --skip-fetch --push   # apply and push msys2-apiss-sync when 
 
 | Kind | Replay into `msys2-apiss` | Registration |
 |------|---------------------------|----------------|
-| Package mirror | yes (`ports/` or `ports-mingw/`) | `Sources.*` + name in `Mirrors.Repos` + `config/mirror-sync/<repo>.json` |
-| Mirror-only | no | entry in `Mirrors.Repos` + `config/mirror-sync/<repo>.json` |
+| Package mirror | yes (`ports/` or `ports-mingw/`) | `Sources.*` + name in `config/mirror-poll.json` `Repos` + `config/mirror-sync/<repo>.json` |
+| Mirror-only | no | entry in `config/mirror-poll.json` `Repos` + `config/mirror-sync/<repo>.json` |
 
 Use mirror-only for upstream repos that are mirrored on GitHub but not replayed
 into the destination (e.g. `mingw-w64`, `glibc`).
@@ -96,17 +96,19 @@ Create `config/mirror-sync/my-tool.json` (copy from `glibc.json` or
 }
 ```
 
-Register the repo name in `config/sync.json` `Mirrors.Repos`:
+Register the repo name in `config/mirror-poll.json` `Repos`:
 
 ```json
-"Mirrors": {
+{
   "Repos": [
     "MSYS2-packages",
     "MINGW-packages",
     "my-tool"
   ],
   "SyncIntervalMinutes": 15,
-  "DispatchEventType": "workflow_dispatch_mirror_merge"
+  "DispatchEventType": "workflow_dispatch_mirror_merge",
+  "PollIntervalMinutes": 60,
+  "DailyReconciliationCron": "0 3 * * *"
 }
 ```
 
@@ -169,7 +171,7 @@ Remove manual copy steps for templates; edit `config/mirror-sync/*.json` in
 msys2-apiss-sync, re-run `yarn fetch-mirrors --skip-fetch --push`.
 
 `mirror-poll.yml` on `msys2-apiss-sync` picks up any repo listed in
-`Mirrors.Repos`.
+`config/mirror-poll.json` `Repos`.
 
 ### 3. Local workflow edits
 

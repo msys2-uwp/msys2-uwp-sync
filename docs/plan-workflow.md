@@ -176,7 +176,7 @@ Package mirrors with `Notify.Enabled` dispatch Block 4 via `gh workflow run mirr
 | `msys2-apiss/MINGW-packages` | `msys2/MINGW-packages` | yes (`ports-mingw/`) |
 | `msys2-apiss/mingw-w64` | SourceForge mingw-w64 | no |
 | `msys2-apiss/glibc` | sourceware glibc | no |
-| Others in `Mirrors.Repos` | per `config/mirror-sync/*.json` | per `Notify.Enabled` |
+| Others in `config/mirror-poll.json` `Repos` | per `config/mirror-sync/*.json` | per `Notify.Enabled` |
 
 ---
 

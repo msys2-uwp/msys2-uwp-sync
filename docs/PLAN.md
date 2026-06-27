@@ -78,11 +78,11 @@ the next run bootstraps from history root.
 
 Tests: `tests/sync/resume.test.ts`, `tests/sync/cursor-branch.test.ts`.
 
-**Single config file.** All sync constants live in [`config/sync.json`](../config/sync.json) only.
+**Single config file.** All sync constants live in [`config/mirror-merge.json`](../config/mirror-merge.json) only.
 Scripts read via `config.ts`; they never write config. Full file content is defined in
 **Phase 1a** below.
 
-**Not in sync.json:** GitHub Actions secrets (`SYNC_DISPATCH_TOKEN` on
+**Not in mirror-merge.json:** GitHub Actions secrets (`SYNC_DISPATCH_TOKEN` on
 `msys2-apiss-sync` and package mirror repos; `MIRROR_PUSH_SSH_KEY` on mirror
 repos), CLI flags (`--clean`,
 `--dry-run`, `--destination-path`, `--max-commits`), and ephemeral paths (default `.work/`
@@ -213,7 +213,7 @@ src/
   lib/
     git.ts                # spawn git, lock retry, UTF-8
     log.ts                # Write-SyncLog equivalent
-    config.ts             # load sync.json, clone URLs
+    config.ts             # load mirror-merge.json, clone URLs
     repos.ts              # destination/mirror clone, branch refs, --clean, push
     history.ts            # retrieve upstream commit lists from cursor branches
     queue.ts              # merge-sort two lists into replay order
@@ -223,7 +223,7 @@ src/
 tests/
   *.test.ts               # vitest unit tests
 config/
-  sync.json               # committed as-is; read-only at runtime
+  mirror-merge.json       # committed as-is; read-only at runtime
 ```
 
 Import order: `git`/`log` -> `config` -> `repos` -> `history` -> `queue` -> `replay`.
@@ -417,7 +417,7 @@ flowchart TD
 
 **Step-by-step:**
 
-1. **Params / config** -- load `config/sync.json`.
+1. **Params / config** -- load `config/mirror-merge.json`.
 
 2. **Prepare repos** -- `repos.ts`: mirrors, destination, fetch remotes.
 
@@ -501,7 +501,7 @@ Tree rules: prefix rewrite only; no timestamp reliance; never create merge commi
 
 Same inputs produce identical `upstream` SHAs:
 
-- `ReplaySpecVersion` + `config/sync.json` path mapping
+- `ReplaySpecVersion` + `config/mirror-merge.json` path mapping
 - `Destination.BaseCommit`
 - Upstream mirror tips at fetch time
 - Implicit full vs incremental (branch presence) affects age gate only, not order of committed entries
@@ -586,13 +586,13 @@ Everything needed before replay logic: load constants, run git, open repos, read
 
 | File | Role |
 |------|------|
-| [`config/sync.json`](../config/sync.json) | Fixed constants; committed directly, read-only at runtime |
+| [`config/mirror-merge.json`](../config/mirror-merge.json) | Fixed constants; committed directly, read-only at runtime |
 | [`src/lib/git.ts`](../src/lib/git.ts) | Git spawn, lock retry, UTF-8 |
 | [`src/lib/log.ts`](../src/lib/log.ts) | Logging, paths |
-| [`src/lib/config.ts`](../src/lib/config.ts) | Load sync.json, URL helpers |
+| [`src/lib/config.ts`](../src/lib/config.ts) | Load mirror-merge.json, URL helpers |
 | [`src/lib/repos.ts`](../src/lib/repos.ts) | Clone, branch refs, `--clean`, push only |
 
-#### [`config/sync.json`](../config/sync.json) (committed as-is)
+#### [`config/mirror-merge.json`](../config/mirror-merge.json) (committed as-is)
 
 Edit in git only when values change (rare).
 
@@ -625,20 +625,25 @@ Edit in git only when values change (rare).
       "CommitMessage": "[{SortKey}] {Subject}{BodyBlock}Source: {UpstreamRepo}@{UpstreamSha}"
     }
   ],
-  "Mirrors": {
-    "Repos": [
-      "MSYS2-packages",
-      "MINGW-packages",
-      "mingw-w64"
-    ],
-    "SyncIntervalMinutes": 15,
-    "DispatchEventType": "workflow_dispatch_mirror_merge"
-  },
   "Replay": {
     "MinReplayAgeMinutes": 5,
     "SkipEmptyTreeDiff": true,
     "LineEnding": "LF"
-  },
+  }
+}
+```
+
+#### [`config/mirror-poll.json`](../config/mirror-poll.json) (Block 2 poll + mirror-init repo list)
+
+```json
+{
+  "Repos": [
+    "MSYS2-packages",
+    "MINGW-packages",
+    "mingw-w64"
+  ],
+  "SyncIntervalMinutes": 15,
+  "DispatchEventType": "workflow_dispatch_mirror_merge",
   "PollIntervalMinutes": 60,
   "DailyReconciliationCron": "0 3 * * *"
 }
@@ -650,7 +655,15 @@ Edit in git only when values change (rare).
 | `Owner` | GitHub org for mirrors and destination (`msys2-apiss`) |
 | `Destination.*` | Target repo, base commit, branch names |
 | `Sources[]` | Mirror repo name, paths, sort keys, cursor branches, `UpstreamRepo` (commit footer), `CommitMessage` template |
-| `Mirrors.*` | Polled mirror repo list (`Repos`), sync interval, dispatch event |
+| `Replay.*` | Age gate, tree/message rules |
+
+| Key (`config/mirror-poll.json`) | Purpose |
+|-----|---------|
+| `Repos` | Polled mirror repo list for Block 2 and Block 1 init |
+| `SyncIntervalMinutes` | Target mirror-sync interval (minutes) |
+| `DispatchEventType` | Block 3 notify event type for package mirrors |
+| `PollIntervalMinutes` | Hourly tolerance poll (60 -> cron `0 * * * *`) |
+| `DailyReconciliationCron` | Daily gap-check schedule |
 | `config/mirror-sync/*.json` | Per-mirror upstream URL, branches, notify, description, homepage URL |
 
 Mirror repos use branch **`msys2-apiss-mirror-sync`** for optional `.github/mirror-sync.json`
@@ -658,9 +671,6 @@ and workflow YAML only; **`master`** is a pure fast-forward copy of upstream wit
 Block 1 install layout (mirror and destination tooling branches):
 [`mirror-init.md` -- Tooling branch layout](mirror-init.md#tooling-branch-layout).
 Mirror refresh is local only; see [`mirror-init.md`](mirror-init.md).
-| `Replay.*` | Age gate, tree/message rules |
-| `PollIntervalMinutes` | Hourly tolerance poll (60 -> cron `0 * * * *`) |
-| `DailyReconciliationCron` | Daily gap-check schedule |
 
 Read-only at runtime.
 
@@ -672,7 +682,7 @@ Read-only at runtime.
 
 #### `config.ts` functions
 
-- `loadSyncConfig` -- read `config/sync.json`
+- `loadSyncConfig` -- read `config/mirror-merge.json`
 - `getDestinationCloneUrl`, `getMirrorCloneUrlForSource`, `getMirrorCloneUrlByRepoName`
 
 #### `repos.ts` functions (workspace + branches only)
@@ -703,7 +713,7 @@ After clean, any missing branch triggers full replay on the next sync pass.
 
 #### Phase 1a done when
 
-- `loadSyncConfig` loads committed sync.json
+- `loadSyncConfig` loads committed mirror-merge.json
 - Temp-repo test: create three branches, read SHAs, `--clean` clears them, `testAllSyncBranchesExist` is false
 - Can clone destination, fetch mirrors, push three branches (no replay yet)
 
@@ -757,10 +767,10 @@ Split across two plans (do not duplicate here):
 
 ### [`AGENTS.md`](../AGENTS.md) and [`.cursor/rules/project-overview.mdc`](../.cursor/rules/project-overview.mdc)
 
-- All sync constants in committed `config/sync.json` only (see Phase 1a key table)
+- All sync constants in committed `config/mirror-merge.json` only (see Phase 1a key table)
 - Cursors and interrupted-run state: three destination branch tips only (no checkpoint file); see **Interrupted-run state** above
 - Bootstrap: implicit when branches missing; `--clean` to reset
-- Poll tolerance: `PollIntervalMinutes` in sync.json
+- Poll tolerance: `PollIntervalMinutes` in config/mirror-poll.json
 - Runtime: Node.js 26+, TypeScript (native type stripping), vitest
 
 ### Phase 2 workflow

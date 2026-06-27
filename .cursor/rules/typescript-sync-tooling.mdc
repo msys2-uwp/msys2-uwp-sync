@@ -19,7 +19,7 @@ alwaysApply: false
 - Entry points: `src/cli/*.ts`.
 - Shared logic: `src/lib/*.ts`.
 - Shared sync types: `src/types/*.ts`.
-- Config defaults: `config/sync.json`; scripts read config and do not write it.
+- Config defaults: `config/mirror-merge.json`; scripts read config and do not write it.
 
 ## Git Replay
 
@@ -28,7 +28,7 @@ alwaysApply: false
 - Preserve upstream committer metadata in `GIT_COMMITTER_*`.
 - Message body is LF only and follows the template in `docs/PLAN.md`.
 - On failure mid-batch, stop without pushing; re-run without `--clean` to continue from branch cursors.
-- First replayed commit parent is `config/sync.json` -> `Destination.BaseCommit`.
+- First replayed commit parent is `config/mirror-merge.json` -> `Destination.BaseCommit`.
 - Bootstrap when any sync branch is missing; `--clean` resets sync branches first.
 
 ## Logging

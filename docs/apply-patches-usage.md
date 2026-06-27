@@ -75,7 +75,7 @@ This creates or refreshes working-copy clones under `.work/mirrors/`:
 - `.work/mirrors/MSYS2-packages` from `https://github.com/msys2-apiss/MSYS2-packages.git`
 - `.work/mirrors/MINGW-packages` from `https://github.com/msys2-apiss/MINGW-packages.git`
 
-Mirror-only repos use the same layout when listed in `config/sync.json` (see
+Mirror-only repos use the same layout when listed in `config/mirror-poll.json` (see
 [`add-mirror.md`](add-mirror.md)).
 
 On first run each mirror is cloned with `git clone --mirror`. Later runs run
@@ -129,7 +129,7 @@ yarn apply-mirror-patch --skip-fetch --source ports --commit aac3de01 --branch a
 | Flag | Purpose |
 |------|---------|
 | `--branch` | New local branch to create and check out (required for index apply) |
-| `--base-branch` | Branch to fork from (default: `upstream` from `config/sync.json`) |
+| `--base-branch` | Branch to fork from (default: `upstream` from `config/mirror-merge.json`) |
 
 Rules:
 

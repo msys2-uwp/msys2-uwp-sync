@@ -14,7 +14,7 @@ yarn mirror-init [--repo <name>] [--skip-fetch] [--push]
 
 | Flag | Purpose |
 |------|---------|
-| `--repo <name>` | Single mirror from `config/sync.json` `Mirrors.Repos` |
+| `--repo <name>` | Single mirror from `config/mirror-poll.json` `Repos` |
 | `--skip-fetch` | Skip `git fetch origin` during ensure-init |
 | `--push` | Same as plain init, then push tooling branches, dispatch Block 3 per mirror, run **`yarn mirror-poll`** |
 
@@ -57,7 +57,7 @@ Each install branch (**`msys2-apiss-mirror-sync`**, **`msys2-apiss-mirror-merge`
 | Repo | Tooling branch | Default branch | Tooling under `.github/` |
 |------|----------------|----------------|--------------------------|
 | Each `msys2-apiss/*` mirror | **`msys2-apiss-mirror-sync`** | content branch (`master` or config) | `workflows/mirror-sync.yml`, `mirror-sync.json`, `toolings/` |
-| **`msys2-apiss/msys2-apiss`** (destination) | **`msys2-apiss-mirror-merge`** | **`main`** (`Destination.DefaultBranch` in [`config/sync.json`](../config/sync.json); GitHub default branch) | `workflows/mirror-merge.yml` only |
+| **`msys2-apiss/msys2-apiss`** (destination) | **`msys2-apiss-mirror-merge`** | **`main`** (`Destination.DefaultBranch` in [`config/mirror-merge.json`](../config/mirror-merge.json); GitHub default branch) | `workflows/mirror-merge.yml` only |
 
 Replay branches (`upstream`, `upstream-ports`, `upstream-ports-mingw`) and mirror
 content branches stay workflow-free. **`ReplayTip`** (`upstream`) is the Block 4 replay
@@ -153,7 +153,7 @@ when possible.
 `gh workflow run mirror-merge.yml` on ref **`msys2-apiss-mirror-merge`** (same bootstrap
 pattern as mirror-sync when the workflow is not registered yet).
 
-**Each mirror in scope** (one with **`--repo`**, or every entry in `Mirrors.Repos` without it):
+**Each mirror in scope** (one with **`--repo`**, or every entry in `config/mirror-poll.json` `Repos` without it):
 
 - Ensure GitHub repo exists (`gh repo create` when origin is empty).
 - Push **`msys2-apiss-mirror-sync`** to `origin`.
@@ -172,7 +172,7 @@ pattern as mirror-sync when the workflow is not registered yet).
 - Does **not** wait for the run to finish.
 
 **Mirror-poll (once, after all mirrors):** run Block 2 **`yarn mirror-poll`** over all
-`Mirrors.Repos` entries. Poll compares upstream vs mirror tips and dispatches Block 3 again
+`config/mirror-poll.json` `Repos` entries. Poll compares upstream vs mirror tips and dispatches Block 3 again
 on repos still behind:
 
 ```bash
