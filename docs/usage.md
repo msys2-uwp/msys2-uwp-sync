@@ -27,7 +27,7 @@ One PAT is reused in three places:
 | Where | Block | Purpose |
 |-------|-------|---------|
 | `msys2-apiss/msys2-apiss-sync` | Block 2 | [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) dispatches `mirror-sync` on mirror repos (`GH_TOKEN`) |
-| `msys2-apiss/MSYS2-packages`, `MINGW-packages` | Block 3 | `mirror-sync.yml` notify step sends `repository_dispatch` to Block 4 |
+| `msys2-apiss/MSYS2-packages`, `MINGW-packages` | Block 3 | `mirror-sync.yml` notify step runs `gh workflow run mirror-merge.yml` on Block 4 |
 
 Package mirrors **`MSYS2-packages`** and **`MINGW-packages`** need the secret on
 the mirror repo (`Notify.Enabled: true`). The tooling repo needs the same PAT

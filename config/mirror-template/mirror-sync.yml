@@ -11,17 +11,17 @@ name: Mirror sync from upstream
 #
 # Block 3 CLI bundle: .github/toolings/ (installed by yarn mirror-init on this branch).
 #
-# Triggers (do not confuse the two dispatch names):
-#   Block 2 -> Block 3: Actions workflow_dispatch API on ref msys2-apiss-mirror-sync
-#     with inputs.event_type=workflow_dispatch_mirror_sync (yarn mirror-poll / mirror-poll.yml).
-#   Block 3 -> Block 4: repository_dispatch event-type workflow_dispatch_mirror_merge
-#     (Notify downstream step below; package mirrors only).
+# Triggers (Block 2 -> Block 3 and Block 3 -> Block 4 both use workflow_dispatch API):
+#   Block 2 -> Block 3: gh workflow run mirror-sync.yml on ref msys2-apiss-mirror-sync
+#     with inputs.event_type=workflow_dispatch_mirror_sync.
+#   Block 3 -> Block 4: gh workflow run mirror-merge.yml on ref msys2-apiss-mirror-merge
+#     with inputs.event_type=workflow_dispatch_mirror_merge (Notify step; package mirrors only).
 
 on:
   workflow_dispatch:
     inputs:
       event_type:
-        description: 'Block 2 dispatch label (not Block 4 repository_dispatch event-type)'
+        description: 'Block 2 dispatch label'
         required: false
         default: workflow_dispatch_mirror_sync
         type: string
@@ -84,16 +84,11 @@ jobs:
 
       - name: Notify downstream
         if: steps.sync.outputs.dispatch_mirror_merge == 'true'
-        uses: peter-evans/repository-dispatch@v4
-        with:
-          # Block 4: repository_dispatch event-type workflow_dispatch_mirror_merge
-          # (Block 2 uses Actions workflow_dispatch API to this workflow, not this event).
-          token: ${{ secrets.SYNC_DISPATCH_TOKEN }}
-          repository: ${{ steps.sync.outputs.notify_repository }}
-          event-type: ${{ steps.sync.outputs.notify_event_type }}
-          client-payload: >-
-            {
-              "source": "${{ github.repository }}",
-              "sha": "${{ steps.sync.outputs.sha }}",
-              "ref": "${{ steps.sync.outputs.ref }}"
-            }
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh workflow run mirror-merge.yml \
+            --repo "${{ steps.sync.outputs.notify_repository }}" \
+            --ref msys2-apiss-mirror-merge \
+            -f "event_type=${{ steps.sync.outputs.notify_event_type }}"

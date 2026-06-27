@@ -13,7 +13,7 @@ Full copy-paste steps: [`docs/usage.md`](../docs/usage.md).
 | File | Purpose |
 |------|---------|
 | `mirror-poll.yml` | Push/cron (~hourly)/manual: runs `yarn mirror-poll` (dispatch when HEAD != upstream) |
-| `config/mirror-template/mirror-merge.yml` (installed on **`msys2-apiss/msys2-apiss`**, branch `msys2-apiss-mirror-merge`; [Tooling branch layout](../docs/mirror-init.md#tooling-branch-layout)) | `repository_dispatch`, manual (`clean=true`) |
+| `config/mirror-template/mirror-merge.yml` (installed on **`msys2-apiss/msys2-apiss`**, branch `msys2-apiss-mirror-merge`; [Tooling branch layout](../docs/mirror-init.md#tooling-branch-layout)) | `workflow_dispatch` (Block 3 notify or manual `clean=true`) |
 
 Dry-run manifest verification: run locally (`yarn mirror-merge --dry-run --skip-fetch`); see
 [`docs/run-local.md`](../docs/run-local.md).
@@ -57,16 +57,14 @@ manual runs queue until the current run finishes.
 
 ## Dispatch events
 
-Two names appear in logs and config; they target different blocks and mechanisms:
+Both blocks use **`gh workflow run`** on the tooling branch:
 
-| Name | From | To | Mechanism |
-|------|------|-----|-----------|
-| `workflow_dispatch_mirror_sync` | Block 2 (`mirror-poll`) | Block 3 (`mirror-sync.yml` on mirror repo) | GitHub Actions **workflow_dispatch** API on ref `msys2-apiss-mirror-sync` |
-| `workflow_dispatch_mirror_merge` | Block 3 (`mirror-sync` notify) | Block 4 (`mirror-merge.yml` on destination) | **repository_dispatch** event-type (package mirrors with `Notify.Enabled`) |
+| Name | From | To | Workflow |
+|------|------|-----|----------|
+| `workflow_dispatch_mirror_sync` | Block 2 (`mirror-poll`) | Block 3 | `mirror-sync.yml` on `msys2-apiss-mirror-sync` |
+| `workflow_dispatch_mirror_merge` | Block 3 (`mirror-sync` notify) | Block 4 | `mirror-merge.yml` on `msys2-apiss-mirror-merge` |
 
-Block 2 never sends `repository_dispatch`. Block 3 notify never uses
-`workflow_dispatch_mirror_sync`. Manual Block 4 runs use `workflow_dispatch` on
-`mirror-merge.yml` (`gh workflow run ...`).
+Manual Block 4 runs use the same `workflow_dispatch` API (`gh workflow run mirror-merge.yml ...`).
 
 ## Secrets
 
@@ -74,8 +72,8 @@ Set with `gh secret set`; not used by local tooling (`gh auth login` instead).
 
 - `SYNC_DISPATCH_TOKEN`: same PAT on **`msys2-apiss/msys2-apiss-sync`** (Block 2
   [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) `GH_TOKEN`) and on
-  package mirrors **`MSYS2-packages`**, **`MINGW-packages`** (Block 3
-  `repository_dispatch` to Block 4 when `Notify.Enabled` is true).
+  package mirrors **`MSYS2-packages`**, **`MINGW-packages`** (Block 3 notify:
+  `gh workflow run mirror-merge.yml` on destination when `Notify.Enabled` is true).
 - `MIRROR_PUSH_SSH_KEY`: mirrors with `PushViaSsh` true (e.g. gcc); deploy key
   for `git@github.com` push.
 - Mirror-only repos with `Notify.Enabled` false use `github.token` inside

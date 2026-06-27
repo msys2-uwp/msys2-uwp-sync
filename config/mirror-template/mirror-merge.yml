@@ -8,19 +8,21 @@ name: Mirror merge
 # Replay branches (upstream, upstream-ports, upstream-ports-mingw) stay workflow-free.
 # TypeScript and config/sync.json live in msys2-apiss/msys2-apiss-sync (main); checkout below.
 #
-# Triggers (do not confuse the two dispatch names):
-#   Block 3 -> Block 4: repository_dispatch event-type workflow_dispatch_mirror_merge
-#     (mirror-sync Notify step; package mirrors with Notify.Enabled).
-#   Block 2 -> Block 3: Actions workflow_dispatch API on mirror-sync.yml
-#     (ref msys2-apiss-mirror-sync; log label workflow_dispatch_mirror_sync).
+# Triggers (Block 2 -> Block 3 and Block 3 -> Block 4 both use workflow_dispatch API):
+#   Block 3 -> Block 4: gh workflow run mirror-merge.yml on ref msys2-apiss-mirror-merge
+#     with inputs.event_type=workflow_dispatch_mirror_merge (mirror-sync Notify step).
+#   Block 2 -> Block 3: gh workflow run mirror-sync.yml on ref msys2-apiss-mirror-sync
+#     with inputs.event_type=workflow_dispatch_mirror_sync.
 #   Manual: workflow_dispatch below (inputs.clean).
 
 on:
-  repository_dispatch:
-    types:
-      - workflow_dispatch_mirror_merge
   workflow_dispatch:
     inputs:
+      event_type:
+        description: 'Block 3 dispatch label'
+        required: false
+        default: workflow_dispatch_mirror_merge
+        type: string
       clean:
         description: 'Reset sync branches before replay'
         required: false
@@ -43,6 +45,7 @@ jobs:
       - name: Log trigger
         run: |
           echo "event=${{ github.event_name }}"
+          echo "event_type=${{ inputs.event_type }}"
           echo "repository=${{ github.repository }}"
           echo "ref=${{ github.ref }}"
 

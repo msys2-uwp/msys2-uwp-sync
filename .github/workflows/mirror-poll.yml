@@ -2,7 +2,7 @@ name: Mirror poll
 
 # Block 2: loop config, compare GitHub tips, dispatch Block 3 mirror-sync.
 # Uses Actions workflow_dispatch API on mirror-sync.yml (ref msys2-apiss-mirror-sync).
-# Log label: workflow_dispatch_mirror_sync (not repository_dispatch; not mirror_merge).
+# Log label: workflow_dispatch_mirror_sync (Block 3 trigger; not mirror_merge).
 
 on:
   push:

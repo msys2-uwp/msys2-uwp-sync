@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { Logger } from '../git/log.ts';
 import type { MirrorSyncConfig } from '../types/mirror-sync-config.ts';
-import { ghDispatchMirrorSyncForMirror, ghGetBranchSha, requireGhAuthenticated } from '../git/gh.ts';
+import { ghDispatchMirrorBlock, ghGetBranchSha, MIRROR_SYNC_BLOCK, requireGhAuthenticated } from '../git/gh.ts';
 import { printMirrorPollCliHelp, readStringOption, wantsHelp } from './args.ts';
 
 export interface SyncConfig {
@@ -78,7 +78,7 @@ function dispatchMirrorSync(
   contentBranch: string,
   logger: Logger
 ): void {
-  ghDispatchMirrorSyncForMirror(owner, repo, contentBranch, logger, {
+  ghDispatchMirrorBlock(MIRROR_SYNC_BLOCK, owner, repo, contentBranch, logger, {
     ForbiddenDetail:
       'gh token cannot dispatch mirror-sync on other repos; set secret ' +
       'SYNC_DISPATCH_TOKEN on msys2-apiss/msys2-apiss-sync ' +

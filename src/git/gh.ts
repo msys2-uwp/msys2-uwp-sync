@@ -1,7 +1,13 @@
 import { spawnSync } from 'node:child_process';
 
 import type { Logger } from './log.ts';
-import { MIRROR_SYNC_BRANCH, WORKFLOW_DISPATCH_MIRROR_SYNC } from '../types/constants.ts';
+import {
+  type GhDispatchAttemptResult,
+  type MirrorBlockDispatchSpec,
+  MIRROR_MERGE_BLOCK,
+  MIRROR_SYNC_BLOCK,
+  parseGhDispatchFailure
+} from './mirror-block-dispatch.ts';
 
 export function runGh(args: string[]): { ok: boolean; stdout: string; stderr: string } {
   const result = spawnSync('gh', args, {
@@ -127,16 +133,20 @@ export function ghSetRepoDefaultBranch(
   }
 }
 
-function ghMirrorSyncRunInProgress(owner: string, repoName: string): boolean | null {
+function ghMirrorBlockRunInProgress(
+  owner: string,
+  repoName: string,
+  spec: MirrorBlockDispatchSpec
+): boolean | null {
   const result = runGh([
     'run',
     'list',
     '--repo',
     `${owner}/${repoName}`,
     '--workflow',
-    'mirror-sync.yml',
+    spec.WorkflowFile,
     '--branch',
-    MIRROR_SYNC_BRANCH,
+    spec.ToolingBranch,
     '--status',
     'in_progress',
     '--limit',
@@ -152,71 +162,65 @@ function ghMirrorSyncRunInProgress(owner: string, repoName: string): boolean | n
   return result.stdout !== '0' && result.stdout.length > 0;
 }
 
-export function ghDispatchMirrorSyncWorkflow(
+function ghAttemptMirrorBlockDispatch(
   owner: string,
   repoName: string,
+  spec: MirrorBlockDispatchSpec,
   logger?: Logger
-): { ok: boolean; skipped?: boolean; notFound?: boolean; forbidden?: boolean; detail?: string } {
-  const inProgress = ghMirrorSyncRunInProgress(owner, repoName);
+): GhDispatchAttemptResult {
+  const inProgress = ghMirrorBlockRunInProgress(owner, repoName, spec);
   if (inProgress === true) {
-    logger?.write(`Skip mirror-sync dispatch on ${owner}/${repoName}: run already in progress`);
+    logger?.write(`Skip ${spec.Block} dispatch on ${owner}/${repoName}: run already in progress`);
     return { ok: false, skipped: true };
   }
-  const result = runGh([
+  const args = [
     'workflow',
     'run',
-    'mirror-sync.yml',
+    spec.WorkflowFile,
     '--repo',
     `${owner}/${repoName}`,
     '--ref',
-    MIRROR_SYNC_BRANCH,
-    '-f',
-    `event_type=${WORKFLOW_DISPATCH_MIRROR_SYNC}`
-  ]);
+    spec.ToolingBranch,
+    ...spec.WorkflowInputs.flatMap(([key, value]) => ['-f', `${key}=${value}`])
+  ];
+  const result = runGh(args);
   if (result.ok) {
     return { ok: true };
   }
-  const detail = `${result.stderr} ${result.stdout}`.trim();
-  const detailLower = detail.toLowerCase();
-  const notFound = detailLower.includes('404') || detailLower.includes('not found');
-  const forbidden =
-    detailLower.includes('403') ||
-    detailLower.includes('resource not accessible') ||
-    detailLower.includes('must have admin rights');
-  return { ok: false, notFound, forbidden, detail: detail || undefined };
+  return { ok: false, ...parseGhDispatchFailure(`${result.stderr} ${result.stdout}`.trim()) };
 }
 
-function throwMirrorSyncDispatchFailure(
+function throwMirrorBlockDispatchFailure(
   owner: string,
   repoName: string,
-  result: { notFound?: boolean; forbidden?: boolean; detail?: string },
+  spec: MirrorBlockDispatchSpec,
+  result: GhDispatchAttemptResult,
   forbiddenDetail?: string
 ): never {
   if (result.notFound) {
-    throw new Error(
-      `${WORKFLOW_DISPATCH_MIRROR_SYNC} failed for ${owner}/${repoName}: mirror-sync.yml not found`
-    );
+    throw new Error(`${spec.Block} failed for ${owner}/${repoName}: ${spec.WorkflowFile} not found`);
   }
   if (result.forbidden) {
     throw new Error(
-      `${WORKFLOW_DISPATCH_MIRROR_SYNC} failed for ${owner}/${repoName} (403): ` +
+      `${spec.Block} failed for ${owner}/${repoName} (403): ` +
         (forbiddenDetail ??
-          'gh cannot dispatch mirror-sync; check gh auth or SYNC_DISPATCH_TOKEN')
+          `gh cannot dispatch ${spec.Block}; check gh auth or SYNC_DISPATCH_TOKEN`)
     );
   }
   const suffix = result.detail ? `: ${result.detail}` : '';
-  throw new Error(`${WORKFLOW_DISPATCH_MIRROR_SYNC} failed for ${owner}/${repoName}${suffix}`);
+  throw new Error(`${spec.Block} failed for ${owner}/${repoName}${suffix}`);
 }
 
-export function ghDispatchMirrorSyncForMirror(
+export function ghDispatchMirrorBlock(
+  spec: MirrorBlockDispatchSpec,
   owner: string,
   repoName: string,
-  contentBranch: string,
+  defaultBranch: string,
   logger: Logger,
   options?: { ForbiddenDetail?: string }
 ): void {
-  logger.write(`Dispatching ${WORKFLOW_DISPATCH_MIRROR_SYNC} on ${owner}/${repoName}`);
-  let result = ghDispatchMirrorSyncWorkflow(owner, repoName, logger);
+  logger.write(`Dispatching ${spec.Block} on ${owner}/${repoName}`);
+  let result = ghAttemptMirrorBlockDispatch(owner, repoName, spec, logger);
   if (result.ok) {
     logger.write(`dispatched ${owner}/${repoName}`);
     return;
@@ -225,14 +229,14 @@ export function ghDispatchMirrorSyncForMirror(
     return;
   }
   if (!result.notFound) {
-    throwMirrorSyncDispatchFailure(owner, repoName, result, options?.ForbiddenDetail);
+    throwMirrorBlockDispatchFailure(owner, repoName, spec, result, options?.ForbiddenDetail);
   }
   logger.write(
-    `${repoName}: mirror-sync.yml not registered; setting default branch to ${MIRROR_SYNC_BRANCH}`
+    `${repoName}: ${spec.WorkflowFile} not registered; setting default branch to ${spec.ToolingBranch}`
   );
-  ghSetRepoDefaultBranch(owner, repoName, MIRROR_SYNC_BRANCH, logger);
+  ghSetRepoDefaultBranch(owner, repoName, spec.ToolingBranch, logger);
   try {
-    result = ghDispatchMirrorSyncWorkflow(owner, repoName, logger);
+    result = ghAttemptMirrorBlockDispatch(owner, repoName, spec, logger);
     if (result.ok) {
       logger.write(`dispatched ${owner}/${repoName}`);
       return;
@@ -240,8 +244,11 @@ export function ghDispatchMirrorSyncForMirror(
     if (result.skipped) {
       return;
     }
-    throwMirrorSyncDispatchFailure(owner, repoName, result, options?.ForbiddenDetail);
+    throwMirrorBlockDispatchFailure(owner, repoName, spec, result, options?.ForbiddenDetail);
   } finally {
-    ghSetRepoDefaultBranch(owner, repoName, contentBranch, logger);
+    ghSetRepoDefaultBranch(owner, repoName, defaultBranch, logger);
   }
 }
+
+export type { GhDispatchAttemptResult, MirrorBlockDispatchSpec } from './mirror-block-dispatch.ts';
+export { MIRROR_MERGE_BLOCK, MIRROR_SYNC_BLOCK } from './mirror-block-dispatch.ts';

@@ -12,12 +12,11 @@ import {
   getMirrorSyncConfigPath,
   getMirrorSyncWorkflowTemplatePath,
   getSyncRepoRoot,
-  MIRROR_SYNC_BRANCH,
   type SyncConfig
 } from './config.ts';
+import { MIRROR_SYNC_BRANCH } from '../types/constants.ts';
 import {
   assertWorkingCopyMirror,
-  commitToolingBranchAtRoot,
   fetchOriginBranchOptional,
   fetchRemoteBranchGraph,
   firstCommitOfBranch,
@@ -26,6 +25,13 @@ import {
 } from './layout.ts';
 import { ghRemoteHasBranch, ghRepoClone } from '../git/gh.ts';
 import { applyMirrorSyncToolings, mirrorSyncToolingsMatch } from './toolings.ts';
+import {
+  defaultBranchRef,
+  ensureToolingBranchCheckout,
+  pushToolingBranch,
+  repairToolingBranchLayout,
+  setGitRepoUtf8Encoding
+} from './tooling-repo.ts';
 import { githubSshPushUrl, runGit, runGitText } from '../git/index.ts';
 import type { Logger } from '../git/log.ts';
 
@@ -34,10 +40,6 @@ export const MIRROR_SYNC_COMMIT_MESSAGE =
   'https://github.com/msys2-apiss/msys2-apiss-sync/tree/main/config/mirror-sync\n' +
   'https://github.com/msys2-apiss/msys2-apiss-sync/blob/main/config/mirror-template/mirror-sync.yml';
 
-function contentDefaultRef(mirrorPath: string, contentBranch: string): string {
-  const originContent = `origin/${contentBranch}`;
-  return refExists(mirrorPath, originContent) ? originContent : contentBranch;
-}
 
 function loadMirrorUpstreamUrl(repoRoot: string, repoName: string): string | null {
   const configPath = getMirrorSyncConfigPath(repoRoot, repoName);
@@ -129,31 +131,15 @@ export function repairSyncBranchLayout(
   logger: Logger,
   options?: { CommitMessage?: string; Force?: boolean }
 ): boolean {
-  assertWorkingCopyMirror(mirrorPath);
-  const defaultRef = contentDefaultRef(mirrorPath, contentBranch);
-  if (!refExists(mirrorPath, defaultRef)) {
-    throw new Error(`Cannot repair ${MIRROR_SYNC_BRANCH}: missing ${defaultRef}`);
-  }
-  if (!options?.Force && isToolingLayoutValid(mirrorPath, defaultRef, MIRROR_SYNC_BRANCH)) {
-    return false;
-  }
-  if (!refExists(mirrorPath, MIRROR_SYNC_BRANCH) && !refExists(mirrorPath, `origin/${MIRROR_SYNC_BRANCH}`)) {
-    throw new Error(`${mirrorPath}: no .github on ${MIRROR_SYNC_BRANCH}. Apply mirror-sync templates first.`);
-  }
-  const restoreFrom = refExists(mirrorPath, MIRROR_SYNC_BRANCH)
-    ? MIRROR_SYNC_BRANCH
-    : `origin/${MIRROR_SYNC_BRANCH}`;
-  commitToolingBranchAtRoot({
+  return repairToolingBranchLayout({
     RepoPath: mirrorPath,
-    DefaultRef: defaultRef,
+    DefaultBranch: contentBranch,
     ToolingBranch: MIRROR_SYNC_BRANCH,
     Paths: ['.github'],
     Message: options?.CommitMessage ?? MIRROR_SYNC_COMMIT_MESSAGE,
     Logger: logger,
-    RestoreFromRef: restoreFrom
+    Force: options?.Force
   });
-  logger.write(`Repaired ${MIRROR_SYNC_BRANCH} on ${mirrorPath}`);
-  return true;
 }
 
 export function applyMirrorSyncTemplate(input: {
@@ -180,7 +166,7 @@ export function applyMirrorSyncTemplate(input: {
   }
 
   fetchOriginBranchOptional(input.MirrorPath, input.ContentBranch, input.Logger);
-  const defaultRef = contentDefaultRef(input.MirrorPath, input.ContentBranch);
+  const defaultRef = defaultBranchRef(input.MirrorPath, input.ContentBranch);
   const layoutValid = isToolingLayoutValid(input.MirrorPath, defaultRef, MIRROR_SYNC_BRANCH);
   const filesInSync = mirrorSyncFilesMatchTemplates(
     input.MirrorPath,
@@ -241,54 +227,26 @@ export function pushMirrorSyncBranch(
   repoName: string,
   logger: Logger
 ): boolean {
-  if (!refExists(mirrorPath, MIRROR_SYNC_BRANCH)) {
-    return false;
-  }
-  const originSync = `origin/${MIRROR_SYNC_BRANCH}`;
-  if (refExists(mirrorPath, originSync)) {
-    const local = runGitText(mirrorPath, ['rev-parse', MIRROR_SYNC_BRANCH]).trim();
-    const remote = runGitText(mirrorPath, ['rev-parse', originSync]).trim();
-    if (local === remote) {
-      logger.write(`${repoName}: ${MIRROR_SYNC_BRANCH} already on origin`);
-      return false;
-    }
-  }
   maybeEnsureGithubSshPushUrl(mirrorPath, logger);
-  runGit(mirrorPath, ['push', '--force-with-lease', 'origin', MIRROR_SYNC_BRANCH], {}, 5, logger);
-  logger.write(`Pushed ${MIRROR_SYNC_BRANCH} to origin for ${repoName}`);
-  return true;
+  return pushToolingBranch({
+    RepoPath: mirrorPath,
+    ToolingBranch: MIRROR_SYNC_BRANCH,
+    Label: repoName,
+    Logger: logger,
+    ForceWithLease: true
+  });
 }
 
 function ensureMirrorSyncBranch(mirrorPath: string, contentBranch: string, logger: Logger): void {
-  fetchOriginBranchOptional(mirrorPath, MIRROR_SYNC_BRANCH, logger);
-  fetchOriginBranchOptional(mirrorPath, contentBranch, logger);
-  const defaultRef = contentDefaultRef(mirrorPath, contentBranch);
-  if (refExists(mirrorPath, `origin/${MIRROR_SYNC_BRANCH}`)) {
-    runGit(
-      mirrorPath,
-      ['checkout', '-B', MIRROR_SYNC_BRANCH, `origin/${MIRROR_SYNC_BRANCH}`],
-      {},
-      5,
-      logger
-    );
-  } else if (!refExists(mirrorPath, MIRROR_SYNC_BRANCH)) {
-    const root = firstCommitOfBranch(mirrorPath, defaultRef);
-    runGit(mirrorPath, ['checkout', '-B', MIRROR_SYNC_BRANCH, root], {}, 5, logger);
-  } else {
-    runGit(mirrorPath, ['checkout', MIRROR_SYNC_BRANCH], {}, 5, logger);
-  }
+  ensureToolingBranchCheckout({
+    RepoPath: mirrorPath,
+    DefaultBranch: contentBranch,
+    ToolingBranch: MIRROR_SYNC_BRANCH,
+    Logger: logger
+  });
+  const defaultRef = defaultBranchRef(mirrorPath, contentBranch);
   if (!isToolingLayoutValid(mirrorPath, defaultRef, MIRROR_SYNC_BRANCH)) {
     repairSyncBranchLayout(mirrorPath, contentBranch, logger, { Force: true });
-  }
-}
-
-function setGitRepoUtf8Encoding(repoPath: string): void {
-  for (const [key, value] of [
-    ['i18n.logOutputEncoding', 'utf-8'],
-    ['i18n.commitEncoding', 'utf-8'],
-    ['core.quotepath', 'false']
-  ]) {
-    runGit(repoPath, ['config', key, value]);
   }
 }
 

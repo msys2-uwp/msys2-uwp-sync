@@ -16,7 +16,7 @@ yarn mirror-init [--repo <name>] [--skip-fetch] [--push]
 |------|---------|
 | `--repo <name>` | Single mirror from `config/sync.json` `Mirrors.Repos` |
 | `--skip-fetch` | Skip `git fetch origin` during ensure-init |
-| `--push` | Push to GitHub; dispatch Block 3 per pushed mirror; then **`yarn mirror-poll`** (all repos) |
+| `--push` | Same as plain init, then push tooling branches, dispatch Block 3 per mirror, run **`yarn mirror-poll`** |
 
 Examples:
 
@@ -50,8 +50,9 @@ Templates: [`config/mirror-template/mirror-sync.yml`](../config/mirror-template/
 Each install branch (**`msys2-apiss-mirror-sync`**, **`msys2-apiss-mirror-merge`**) is a
 **single commit** whose parent is the **first commit** of that repo's default branch.
 **`yarn mirror-init`** creates or repairs this layout on every run. Code:
-`src/mirror-init/` (`firstCommitOfBranch`, `installMirrorMergeWorkflow`,
-`bootstrapMirrorFromUpstreamRoot`, `repairSyncBranchLayout`).
+`src/mirror-init/` (`firstCommitOfBranch`, `initializeDestinationRepository`,
+`initializeNamedMirrorRepository`, `bootstrapMirrorFromUpstreamRoot`,
+`repairSyncBranchLayout`).
 
 | Repo | Tooling branch | Default branch | Tooling under `.github/` |
 |------|----------------|----------------|--------------------------|
@@ -102,62 +103,63 @@ git push -u origin "$TOOLING"
 After local edits on a tooling branch, re-run **`yarn mirror-init`** (with or without
 **`--push`**) to repair layout and re-apply templates when they differ.
 
-## Plain init (no `--push`)
+## Workflow
 
-### Destination repo (once)
+Every **`yarn mirror-init`** run uses the same steps for each target repo. **`--push`**
+only adds GitHub push and CI triggers at the end.
 
-Install/update Block 4 `mirror-merge.yml` on **`msys2-apiss/msys2-apiss`**
-(destination repo), branch **`msys2-apiss-mirror-merge`** ([Tooling branch layout](#tooling-branch-layout)).
+### Targets (in order)
 
-### Each mirror repo in scope
+| Target | Local path | Tooling branch | Default branch | Tooling files |
+|--------|------------|----------------|----------------|---------------|
+| **`msys2-apiss/msys2-apiss`** (destination) | `.work/mirror-merge-ci/` | **`msys2-apiss-mirror-merge`** | **`main`** (`Destination.DefaultBranch`) | `workflows/mirror-merge.yml` |
+| Each `msys2-apiss/*` mirror | `.work/mirrors/<repo>/` | **`msys2-apiss-mirror-sync`** | content branch (`master` or config) | `workflows/mirror-sync.yml`, `mirror-sync.json`, `toolings/` |
 
-- Detect/repair local state (none, broken, incomplete, complete).
-- Fetch origin (unless `--skip-fetch`).
-- Apply Block 3 templates on **`msys2-apiss-mirror-sync`** when they differ ([Tooling branch layout](#tooling-branch-layout)).
+Destination and mirrors share the same [Tooling branch layout](#tooling-branch-layout)
+(fetch default-branch graph, checkout root, apply templates, single tooling commit).
+Only the branch name, local path, and template files differ.
 
-No GitHub push. No Block 3 dispatch. Use `yarn mirror-poll` or CI cron later.
+### Per target (always)
 
-### Local working copy states
+1. Ensure local working copy (clone origin, or upstream bootstrap when mirror origin is empty).
+2. Fetch origin (unless `--skip-fetch`).
+3. Detect/repair state (none, broken, incomplete, complete) and apply templates when they differ.
+4. Log tooling-branch tip.
+
+Mirror repos only: empty GitHub origin uses upstream bootstrap per [Tooling branch layout](#tooling-branch-layout).
+Block 3 (mirror-sync) updates the mirror content branch on GitHub; Block 1 does not push it.
+
+### Local working copy states (mirrors)
 
 | State | Detection | Action |
 |-------|-----------|--------|
-| **None** | No `.work/mirrors/<repo>/` | Clone origin if non-empty; else bootstrap per [Tooling branch layout](#tooling-branch-layout) |
+| **None** | No `.work/mirrors/<repo>/` | Clone origin if non-empty; else upstream bootstrap |
 | **Broken** | Invalid git repo (no HEAD, bare clone) | Remove and re-init from **None** |
-| **Incomplete** | Missing sync branch or invalid layout | Fetch; repair per [Tooling branch layout](#tooling-branch-layout); apply templates |
-| **Complete** | Content + valid sync branch ([Tooling branch layout](#tooling-branch-layout)) | Fetch; apply templates when differ; ready for **`--push`** |
+| **Incomplete** | Missing tooling branch or invalid layout | Fetch; repair layout; apply templates |
+| **Complete** | Content + valid tooling branch | Fetch; apply templates when differ |
 
 Origin on GitHub is checked separately (`mirrorOriginHasContent`): empty origin uses
 upstream bootstrap; non-empty origin uses clone or fetch.
 
-**Reuse local clone:** do not delete `.work/mirrors/<repo>` when only the sync branch is
+**Reuse local clone:** do not delete `.work/mirrors/<repo>` when only the tooling branch is
 missing; bootstrap in place. Complete clones are reused without recloning.
 
 **Large mirrors (gcc):** `PushViaSsh` in mirror config; ensure-init reuses complete clones
 when possible.
 
-## `--push` workflow
+### With `--push` (after all targets initialized)
 
-### Destination repo (once)
+**Destination:** push **`msys2-apiss-mirror-merge`** to origin, then dispatch Block 4 with
+`gh workflow run mirror-merge.yml` on ref **`msys2-apiss-mirror-merge`** (same bootstrap
+pattern as mirror-sync when the workflow is not registered yet).
 
-Install/update Block 4 CI on **`msys2-apiss/msys2-apiss`** (destination repo),
-branch **`msys2-apiss-mirror-merge`** ([Tooling branch layout](#tooling-branch-layout);
-push to origin when **`--push`**).
-
-### Each mirror repo in scope
-
-Per mirror: init locally, then push **`msys2-apiss-mirror-sync`** when **`--push`**. Block 3
-(mirror-sync) updates the content branch on GitHub. See **Prepare and push** below.
-
-#### Prepare and push
-
-For each mirror in scope (one with **`--repo`**, or every entry in `Mirrors.Repos`
-without it, in order):
+**Each mirror in scope** (one with **`--repo`**, or every entry in `Mirrors.Repos` without it):
 
 - Ensure GitHub repo exists (`gh repo create` when origin is empty).
-- Push **`msys2-apiss-mirror-sync`** to `origin` ([Tooling branch layout](#tooling-branch-layout)).
-- **Dispatch Block 3** for that mirror (always after push; no tip comparison). When
-  `mirror-sync.yml` is not registered yet, briefly set default branch to
-  **`msys2-apiss-mirror-sync`**, dispatch, then restore default to the content branch:
+- Push **`msys2-apiss-mirror-sync`** to `origin`.
+- **Dispatch Block 3** (always after push; no tip comparison). When `mirror-sync.yml` is not
+  registered yet, briefly set default branch to **`msys2-apiss-mirror-sync`**, dispatch, then
+  restore default to the content branch:
 
   ```bash
   gh workflow run mirror-sync.yml \
@@ -169,12 +171,9 @@ without it, in order):
 - Skip dispatch only when a `mirror-sync` run is already in progress on that repo.
 - Does **not** wait for the run to finish.
 
-#### Mirror-poll (once, after all mirrors)
-
-After every mirror in scope has been pushed and dispatched, run Block 2
-**`yarn mirror-poll`** once over **all** `Mirrors.Repos` entries (same process as
-`node src/mirror-poll/cli.ts`). Poll compares upstream vs mirror tips and dispatches
-Block 3 again on each repo that is still behind:
+**Mirror-poll (once, after all mirrors):** run Block 2 **`yarn mirror-poll`** over all
+`Mirrors.Repos` entries. Poll compares upstream vs mirror tips and dispatches Block 3 again
+on repos still behind:
 
 ```bash
 yarn mirror-poll
@@ -183,8 +182,10 @@ yarn mirror-poll
 - Skip dispatch when tips already match or a `mirror-sync` run is already in progress.
 - Does **not** wait for Block 3 runs to finish.
 
-Per-mirror dispatch (above) and mirror-poll dispatch are **both** required steps in
-**`--push`**; poll does not replace the per-mirror dispatch.
+Per-mirror dispatch and mirror-poll dispatch are **both** required in **`--push`**; poll does
+not replace the per-mirror dispatch.
+
+Without **`--push`**: no GitHub push, no Block 3 dispatch. Use `yarn mirror-poll` or CI cron later.
 
 ## Manual equivalent (one repo)
 

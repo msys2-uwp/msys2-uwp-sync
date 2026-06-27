@@ -17,8 +17,7 @@ export interface SyncConfig {
   };
 }
 
-export const MIRROR_SYNC_BRANCH = 'msys2-apiss-mirror-sync';
-export const MIRROR_MERGE_BRANCH = 'msys2-apiss-mirror-merge';
+export { MIRROR_MERGE_BRANCH, MIRROR_SYNC_BRANCH } from '../types/constants.ts';
 
 export function getSyncRepoRoot(startPath = dirname(fileURLToPath(import.meta.url))): string {
   let current = startPath;

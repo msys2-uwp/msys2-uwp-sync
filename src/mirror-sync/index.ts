@@ -3,13 +3,10 @@ import { resolve } from 'node:path';
 
 import { runGit, runGitText, githubSshPushUrl } from '../git/index.ts';
 import type { Logger } from '../git/log.ts';
-import { WORKFLOW_DISPATCH_MIRROR_SYNC } from '../types/constants.ts';
+import { WORKFLOW_DISPATCH_MIRROR_MERGE, WORKFLOW_DISPATCH_MIRROR_SYNC } from '../types/constants.ts';
 import type { MirrorSyncBranchPair, MirrorSyncConfig } from '../types/mirror-sync-config.ts';
 
 export type { Logger } from '../git/log.ts';
-
-/** repository_dispatch event-type for Block 4 notify (mirror-sync -> mirror-merge). */
-export const MIRROR_MERGE_DISPATCH_EVENT = 'workflow_dispatch_mirror_merge';
 
 export interface MirrorSyncBranchResult {
   Upstream: string;
@@ -71,7 +68,7 @@ export function getMirrorSyncNotify(config: MirrorSyncConfig): MirrorSyncResult[
   return {
     Enabled: true,
     Repository: config.Notify.Repository,
-    EventType: config.Notify.EventType ?? MIRROR_MERGE_DISPATCH_EVENT
+    EventType: config.Notify.EventType ?? WORKFLOW_DISPATCH_MIRROR_MERGE
   };
 }
 

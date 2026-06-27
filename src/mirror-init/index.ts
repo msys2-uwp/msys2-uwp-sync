@@ -8,22 +8,27 @@ import {
   getSyncRepoRoot,
   getWorkDirectory,
   loadMirrorSyncConfigFile,
-  loadSyncConfig,
-  MIRROR_SYNC_BRANCH
+  loadSyncConfig
 } from './config.ts';
-import { installMirrorMergeWorkflow } from './destination.ts';
+import {
+  initializeDestinationRepository,
+  pushDestinationToolingBranch
+} from './destination.ts';
 import {
   initializeNamedMirrorRepository,
   mirrorOriginHasContent,
   pushMirrorSyncBranch
 } from './mirror.ts';
 import {
-  ghDispatchMirrorSyncForMirror,
+  ghDispatchMirrorBlock,
   ghRepoCreate,
+  MIRROR_MERGE_BLOCK,
+  MIRROR_SYNC_BLOCK,
   requireGhAuthenticated
 } from '../git/gh.ts';
 import { runGitText } from '../git/index.ts';
 import type { Logger } from '../git/log.ts';
+import { MIRROR_MERGE_BRANCH, MIRROR_SYNC_BRANCH } from '../types/constants.ts';
 
 function createLogger(): Logger {
   return {
@@ -34,6 +39,18 @@ function createLogger(): Logger {
     },
     close() {}
   };
+}
+
+function pushDestinationRepo(input: {
+  RepoPath: string;
+  Config: ReturnType<typeof loadSyncConfig>;
+  Logger: Logger;
+}): void {
+  const owner = input.Config.Owner;
+  const repo = input.Config.Destination.Repo;
+  const defaultBranch = input.Config.Destination.DefaultBranch ?? 'main';
+  pushDestinationToolingBranch({ RepoPath: input.RepoPath, Config: input.Config, Logger: input.Logger });
+  ghDispatchMirrorBlock(MIRROR_MERGE_BLOCK, owner, repo, defaultBranch, input.Logger);
 }
 
 function pushMirrorRepo(input: {
@@ -57,7 +74,7 @@ function pushMirrorRepo(input: {
     });
   }
   pushMirrorSyncBranch(input.MirrorPath, input.RepoName, input.Logger);
-  ghDispatchMirrorSyncForMirror(owner, input.RepoName, input.ContentBranch, input.Logger);
+  ghDispatchMirrorBlock(MIRROR_SYNC_BLOCK, owner, input.RepoName, input.ContentBranch, input.Logger);
 }
 
 function runMirrorPollAfterPush(repoRoot: string, logger: Logger): void {
@@ -93,13 +110,20 @@ export async function runMirrorInit(input: {
     throw new Error(`Unknown mirror repo: ${input.RepoFilter}`);
   }
 
-  installMirrorMergeWorkflow({
+  const destinationPath = initializeDestinationRepository({
     RepoRoot: repoRoot,
     WorkDirectory: work,
     Config: config,
-    Push: Boolean(input.Push),
+    SkipFetch: Boolean(input.SkipFetch),
     Logger: logger
   });
+  if (input.Push) {
+    pushDestinationRepo({ RepoPath: destinationPath, Config: config, Logger: logger });
+  }
+  const mergeTip = runGitText(destinationPath, ['rev-parse', MIRROR_MERGE_BRANCH]).trim();
+  logger.write(
+    `${config.Owner}/${config.Destination.Repo}: ${destinationPath} (${MIRROR_MERGE_BRANCH}=${mergeTip.slice(0, 8)})`
+  );
 
   for (const repoName of getMirrorPollRepoNames(config)) {
     if (input.RepoFilter && input.RepoFilter !== repoName) {

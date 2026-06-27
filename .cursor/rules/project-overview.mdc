@@ -36,7 +36,7 @@ Do not rewrite the base commit from sync tooling.
 ## Triggers
 
 - Primary: Block 2 mirror-poll on tooling repo (~hourly cron, push to `main`).
-- Block 3 -> Block 4: `repository_dispatch` after package mirrors advance (`Notify.Enabled`).
+- Block 3 -> Block 4: `workflow_dispatch` after package mirrors advance (`Notify.Enabled`).
 - Expect ~1 h end-to-end after upstream changes; sub-hour timing is not guaranteed.
 - Fallback: manual `workflow_dispatch` on mirror-sync / mirror-merge.
 

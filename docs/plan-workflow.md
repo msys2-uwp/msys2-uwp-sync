@@ -61,7 +61,7 @@ and the Block 4 workflow branch to **`msys2-apiss/msys2-apiss`**, then dispatche
 |------|--------------|------------------|----------|
 | `msys2-apiss-sync` (tooling repo) | Yes (TypeScript + templates) | Block 2: `mirror-poll.yml` on `main` | Block 3 `workflow_dispatch_mirror_merge` (package mirrors) |
 | `msys2-apiss/*` (mirror repos) | No (content only) | Block 3: `mirror-sync.yml` on mirror branch `msys2-apiss-mirror-sync` (installed by Block 1) | Block 2 `workflow_dispatch_mirror_sync`; updates mirror `master` |
-| `msys2-apiss/msys2-apiss` (destination) | No (replay output only) | Block 4: `mirror-merge.yml` on branch **`msys2-apiss-mirror-merge`** (installed by Block 1; [Tooling branch layout](mirror-init.md#tooling-branch-layout)) | `repository_dispatch` / manual from Block 3; Block 4 pushes `upstream*` |
+| `msys2-apiss/msys2-apiss` (destination) | No (replay output only) | Block 4: `mirror-merge.yml` on branch **`msys2-apiss-mirror-merge`** (installed by Block 1; [Tooling branch layout](mirror-init.md#tooling-branch-layout)) | `workflow_dispatch` from Block 3 notify or manual; Block 4 pushes `upstream*` |
 | `msys2/*`, SourceForge, etc. | N/A | N/A | Block 2 reads upstream tip via `ls-remote` |
 
 ---
@@ -163,7 +163,7 @@ For each `Branches[]` entry in mirror config:
 4. If different: fast-forward push to mirror content branch (SSH when `PushViaSsh`)
 5. If `SyncTags`: fetch and push tags
 
-Package mirrors with `Notify.Enabled` dispatch Block 4 via `repository_dispatch`
+Package mirrors with `Notify.Enabled` dispatch Block 4 via `gh workflow run mirror-merge.yml`
 (`SYNC_DISPATCH_TOKEN` on mirror repo). Mirror-only repos use `github.token` when unset.
 
 ---
