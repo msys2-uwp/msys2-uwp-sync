@@ -34,6 +34,7 @@ documentation-only instructions.
 ## Docs
 
 - [`docs/usage.md`](../docs/usage.md): GitHub and local operational commands
+- [`docs/mirror-poll.md`](../docs/mirror-poll.md): Block 2 poll and dispatch
 - [`docs/run-local.md`](../docs/run-local.md): local testing and debugging
 - [`docs/PLAN.md`](../docs/PLAN.md): design; link to usage.md for run commands
 

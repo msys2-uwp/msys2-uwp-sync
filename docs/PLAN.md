@@ -10,9 +10,10 @@ This repo implements two pipelines. Each has its own plan document:
 | [**Workflow (center)**](plan-workflow.md) | Blocks 0-4, repos, CI boundaries | See operator flows table |
 | [**Mirror-merge**](plan-sync-merge.md) | [msys2-apiss/msys2-apiss](https://github.com/msys2-apiss/msys2-apiss) destination | `yarn mirror-merge` (Block 4 local); `mirror-merge.yml` CI on `msys2-apiss-mirror-merge` |
 | [**Mirror-init**](mirror-init.md#tooling-branch-layout) | Block 1: [Tooling branch layout](mirror-init.md#tooling-branch-layout), `--push` | `yarn mirror-init` |
+| [**Mirror-poll**](mirror-poll.md) | Block 2: tip compare, cron, `config/mirror-poll.json` | `yarn mirror-poll` |
 
-End-to-end flow: Block 0 (config URL) -> **Block 1** init -> **Block 2** poll (via
-`yarn mirror-poll` or cron) or Block 1 **`--push`** (dispatch Block 3) ->
+End-to-end flow: Block 0 (config URL) -> **Block 1** init -> **Block 2** poll
+([`mirror-poll.md`](mirror-poll.md)) or Block 1 **`--push`** (dispatch Block 3) ->
 **Block 3** mirror-sync -> **Block 4** mirror-merge (replay + push to `msys2-apiss/msys2-apiss`
 `upstream*`).
 
@@ -636,7 +637,17 @@ Edit in git only when values change (rare).
 }
 ```
 
-#### [`config/mirror-poll.json`](../config/mirror-poll.json) (Block 2 poll + mirror-init repo list)
+| Key | Purpose |
+|-----|---------|
+| `ReplaySpecVersion` | Algorithm version; bump to 5 if commit-step optimization changes replay SHAs |
+| `Owner` | GitHub org for mirrors and destination (`msys2-apiss`) |
+| `Destination.*` | Target repo, base commit, branch names |
+| `Sources[]` | Mirror repo name, paths, sort keys, cursor branches, `UpstreamRepo` (commit footer), `CommitMessage` template |
+| `Replay.*` | Age gate, tree/message rules |
+
+#### [`config/mirror-poll.json`](../config/mirror-poll.json) (Block 2 + mirror-init repo list)
+
+Operator detail: [`mirror-poll.md`](mirror-poll.md). Example:
 
 ```json
 {
@@ -653,14 +664,6 @@ Edit in git only when values change (rare).
 }
 ```
 
-| Key | Purpose |
-|-----|---------|
-| `ReplaySpecVersion` | Algorithm version; bump to 5 if commit-step optimization changes replay SHAs |
-| `Owner` | GitHub org for mirrors and destination (`msys2-apiss`) |
-| `Destination.*` | Target repo, base commit, branch names |
-| `Sources[]` | Mirror repo name, paths, sort keys, cursor branches, `UpstreamRepo` (commit footer), `CommitMessage` template |
-| `Replay.*` | Age gate, tree/message rules |
-
 | Key (`config/mirror-poll.json`) | Purpose |
 |-----|---------|
 | `Owner` | GitHub org for mirror repos and destination |
@@ -668,11 +671,9 @@ Edit in git only when values change (rare).
 | `Repos` | Polled mirror repo list for Block 2 and Block 1 init |
 | `config/mirror-sync/*.json` | Per-mirror upstream URL, branches, notify, description, homepage URL |
 
-Mirror repos use branch **`msys2-apiss-mirror-sync`** for optional `.github/mirror-sync.json`
-and workflow YAML only; **`master`** is a pure fast-forward copy of upstream with no workflow files.
-Block 1 install layout (mirror and destination tooling branches):
-[`mirror-init.md` -- Tooling branch layout](mirror-init.md#tooling-branch-layout).
-Mirror refresh is local only; see [`mirror-init.md`](mirror-init.md).
+Mirror repos use branch **`msys2-apiss-mirror-sync`** for workflow YAML only; content
+branches are pure upstream copies. Block 1 layout: [`mirror-init.md`](mirror-init.md).
+Block 2 poll: [`mirror-poll.md`](mirror-poll.md).
 
 Read-only at runtime.
 

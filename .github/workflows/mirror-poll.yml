@@ -39,6 +39,6 @@ jobs:
 
       - name: Run mirror poll
         env:
-          # Same PAT as package mirror repos; see docs/usage.md (SYNC_DISPATCH_TOKEN).
+          # Same PAT as package mirror repos; see docs/mirror-poll.md (CI secrets).
           GH_TOKEN: ${{ secrets.SYNC_DISPATCH_TOKEN || github.token }}
         run: node src/mirror-poll/cli.ts

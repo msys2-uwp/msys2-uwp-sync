@@ -13,6 +13,7 @@ All architecture, phases, and implementation design live in committed repo files
 - **Index:** [`docs/PLAN.md`](docs/PLAN.md) (shared replay foundation + links)
 - **Mirror-merge:** [`docs/plan-sync-merge.md`](docs/plan-sync-merge.md) (`msys2-apiss` destination, Block 4 `yarn mirror-merge`)
 - **Mirror-init:** [`docs/mirror-init.md`](docs/mirror-init.md) (Block 1: `yarn mirror-init`; [Tooling branch layout](docs/mirror-init.md#tooling-branch-layout))
+- **Mirror-poll:** [`docs/mirror-poll.md`](docs/mirror-poll.md) (Block 2: `yarn mirror-poll`)
 
 Edit the plan file that matches the area you are changing. Do not create other
 parallel plan files unless the user explicitly asks.
@@ -39,5 +40,5 @@ confusion when they diverged from `docs/PLAN.md`.
 
 - Read design from committed plan docs, not from conversation-only or Cursor-internal state
 - Read block/repo/CI design from [`plan-workflow.md`](docs/plan-workflow.md) first
-- Mirror-merge algorithm -> `plan-sync-merge.md` / `PLAN.md`; Block 1 detail -> `mirror-init.md`; Blocks 2-3 -> `plan-workflow.md`
+- Mirror-merge algorithm -> `plan-sync-merge.md` / `PLAN.md`; Block 1 detail -> `mirror-init.md`; Block 2 -> `mirror-poll.md`; Block 3 -> `plan-workflow.md`
 - If committed plans and chat history disagree, the committed files win unless the user is actively revising them

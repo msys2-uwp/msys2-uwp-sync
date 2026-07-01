@@ -15,7 +15,7 @@ yarn mirror-init [--repo <name>] [--skip-fetch] [--push] [--no-poll]
 | `--repo <name>` | Single mirror from `config/mirror-poll.json` `Repos` |
 | `--skip-fetch` | Skip `git fetch origin` during ensure-init |
 | `--push` | Push tooling branches, dispatch Block 3/4 on bootstrapped repos, write digest pins |
-| `--no-poll` | Skip Block 2 `mirror-poll.yml` dispatch at end |
+| `--no-poll` | Skip Block 2 dispatch at end ([`mirror-poll.md`](mirror-poll.md)) |
 
 Requires `gh auth login` unless `--no-poll`.
 
@@ -71,7 +71,7 @@ Not hashed: `config/digest.json`, `config/mirror-poll.json`, other mirrors' JSON
 |--------------|----------|
 | Missing/`{}`/stale repo key | Bootstrap that repo (clone, layout, apply; push/dispatch with `--push`) |
 | Matches current hash | Skip init, push, and Block 3/4 dispatch for that repo |
-| All pinned | Skip all repo work; mirror-poll still runs unless `--no-poll` |
+| All pinned | Skip all repo work; Block 2 still runs unless `--no-poll` |
 
 Shared template or bundle change re-bootstrap **all** repos on next `--push`. One
 mirror JSON change re-bootstraps **that mirror only** (`--repo <name>`).
@@ -89,8 +89,8 @@ warning and treats the map as empty. Code: `src/lib/tooling-digest.ts`.
 ## Run behavior
 
 **Without `--push`:** ensure local clones, fetch (unless `--skip-fetch`), repair layout,
-apply templates when unpinned; no GitHub push or Block 3/4 dispatch. Mirror-poll at end
-unless `--no-poll`.
+apply templates when unpinned; no GitHub push or Block 3/4 dispatch. Block 2 at end
+unless `--no-poll` ([`mirror-poll.md`](mirror-poll.md)).
 
 **With `--push`:** above, then for each unpinned target in scope:
 
@@ -100,9 +100,6 @@ unless `--no-poll`.
   **`msys2-apiss-mirror-sync`**; dispatch Block 3 on that ref (skip only if a run is
   in progress). May temporarily set default branch to the tooling branch until GitHub
   registers the workflow.
-
-**Mirror-poll:** always at end unless `--no-poll`:
-`gh workflow run mirror-poll.yml --repo msys2-apiss/msys2-apiss-sync --ref main`.
 
 Working copy: **none** (clone or upstream bootstrap), **broken** (re-init),
 **incomplete** (repair layout), **complete** (reuse; apply when needed). Empty GitHub
@@ -131,6 +128,7 @@ when ready.
 
 ## Related
 
-- [`plan-workflow.md`](plan-workflow.md) -- Blocks 2-4
+- [`mirror-poll.md`](mirror-poll.md) -- Block 2 tip compare and dispatch
+- [`plan-workflow.md`](plan-workflow.md) -- Blocks 3-4
 - [`add-mirror.md`](add-mirror.md) -- register a mirror
 - [`usage.md`](usage.md) -- secrets and commands

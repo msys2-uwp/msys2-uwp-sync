@@ -144,9 +144,8 @@ yarn fetch-mirrors --skip-fetch --push
 On first bootstrap, `--push` temporarily sets default branch to `msys2-apiss-sync` so
 GitHub registers `mirror-sync.yml`, triggers mirror-sync, then immediately sets
 default back to the content branch (`master` or configured mirror branch). It
-does not wait for the run to finish. Later **`--push`** dispatches mirror-sync on ref
-`msys2-apiss-mirror-sync` when the workflow file is on that branch, then mirror-poll
-(unless **`--no-poll`**).
+does not wait for the run to finish. Later **`--push`** dispatches Block 3 on ref **`msys2-apiss-mirror-sync`**, then Block 2
+unless **`--no-poll`** ([`mirror-poll.md`](mirror-poll.md)).
 
 Or manually:
 
@@ -172,8 +171,8 @@ yarn mirror-init --skip-fetch --repo my-tool --push
 Remove manual copy steps for templates; edit `config/mirror-sync/*.json` in
 msys2-apiss-sync, re-run `yarn fetch-mirrors --skip-fetch --push`.
 
-`mirror-poll.yml` on `msys2-apiss-sync` picks up any repo listed in
-`config/mirror-poll.json` `Repos`.
+Block 2 picks up any repo listed in `config/mirror-poll.json` `Repos`
+([`mirror-poll.md`](mirror-poll.md)).
 
 ### 3. Local workflow edits
 

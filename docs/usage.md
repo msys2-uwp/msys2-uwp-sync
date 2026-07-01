@@ -6,14 +6,15 @@ Pipeline: `msys2/*` upstream -> `msys2-apiss/*` mirrors -> `msys2-apiss/msys2-ap
 on branches `upstream`, `upstream-ports`, `upstream-ports-mingw`.
 
 Local testing and debugging: [`run-local.md`](run-local.md). Design and flags:
-[`PLAN.md`](PLAN.md). Block 1: [`mirror-init.md`](mirror-init.md) ([Tooling branch layout](mirror-init.md#tooling-branch-layout)).
+[`PLAN.md`](PLAN.md). Block 1: [`mirror-init.md`](mirror-init.md). Block 2:
+[`mirror-poll.md`](mirror-poll.md).
 
 ## GitHub (`gh`)
 
-Pushing to `main` on this repo runs [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml)
-automatically. Block 4 CI is [`mirror-merge.yml`](../config/mirror-template/mirror-merge.yml)
-on destination repo **`msys2-apiss/msys2-apiss`**, branch **`msys2-apiss-mirror-merge`**
-(installed by `yarn mirror-init`; [Tooling branch layout](mirror-init.md#tooling-branch-layout)).
+Block 2 cron and push triggers: [`mirror-poll.md`](mirror-poll.md). Block 4 CI is
+[`mirror-merge.yml`](../config/mirror-template/mirror-merge.yml) on destination repo
+**`msys2-apiss/msys2-apiss`**, branch **`msys2-apiss-mirror-merge`** (installed by
+`yarn mirror-init`; [Tooling branch layout](mirror-init.md#tooling-branch-layout)).
 
 Requires the [GitHub CLI](https://cli.github.com/) (`gh auth login`) with access to
 `msys2-apiss`. Local commands use **git** and **gh** only; no env secrets.
@@ -26,12 +27,12 @@ One PAT is reused in three places:
 
 | Where | Block | Purpose |
 |-------|-------|---------|
-| `msys2-apiss/msys2-apiss-sync` | Block 2 | [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) dispatches `mirror-sync` on mirror repos (`GH_TOKEN`) |
+| `msys2-apiss/msys2-apiss-sync` | Block 2 | [`mirror-poll.md`](mirror-poll.md) (`GH_TOKEN` dispatches Block 3) |
 | `msys2-apiss/MSYS2-packages`, `MINGW-packages` | Block 3 | `mirror-sync.yml` notify step runs `gh workflow run mirror-merge.yml` on Block 4 |
 
 Package mirrors **`MSYS2-packages`** and **`MINGW-packages`** need the secret on
 the mirror repo (`Notify.Enabled: true`). The tooling repo needs the same PAT
-so CI mirror-poll can trigger Block 3 when tips differ.
+so Block 2 can trigger Block 3 when tips differ ([`mirror-poll.md`](mirror-poll.md)).
 
 1. **Create a PAT** ([fine-grained](https://github.com/settings/personal-access-tokens/new) recommended, or [classic](https://github.com/settings/tokens/new)):
    - **Fine-grained:** resource owner = `msys2-apiss`; repository access =
@@ -39,9 +40,8 @@ so CI mirror-poll can trigger Block 3 when tips differ.
      **Contents** Read and write, **Workflows** Read and write, **Metadata**
      Read-only.
    - **Classic:** scopes **`repo`**, **`workflow`**.
-2. **Add the secret on each package mirror** and on the tooling repo (Block 2
-   [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) uses the same PAT to
-   dispatch `mirror-sync` on mirror repos):
+2. **Add the secret on each package mirror** and on the tooling repo (Block 2;
+   see [`mirror-poll.md`](mirror-poll.md)):
 
 ```bash
 gh secret set SYNC_DISPATCH_TOKEN --repo msys2-apiss/MSYS2-packages
@@ -87,24 +87,9 @@ SSH is used only for `git push` on repos with `PushViaSsh` true.
 
 ### 1. Refresh mirrors from upstream
 
-Mirrors auto-refresh about hourly via [`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) on this repo (GitHub cron is best-effort). Mirror-poll skips dispatch when each mirror content branch already matches upstream. Manual trigger on branch `msys2-apiss-mirror-sync` (workflows live there, not on `master`; [Tooling branch layout](mirror-init.md#tooling-branch-layout)):
-
-```bash
-gh workflow run mirror-sync.yml --repo msys2-apiss/MSYS2-packages --ref msys2-apiss-mirror-sync
-gh workflow run mirror-sync.yml --repo msys2-apiss/MINGW-packages --ref msys2-apiss-mirror-sync
-gh workflow run mirror-sync.yml --repo msys2-apiss/mingw-w64 --ref msys2-apiss-mirror-sync
-gh workflow run mirror-sync.yml --repo msys2-apiss/glibc --ref msys2-apiss-mirror-sync
-gh workflow run mirror-sync.yml --repo msys2-apiss/enscript --ref msys2-apiss-mirror-sync
-gh workflow run mirror-sync.yml --repo msys2-apiss/gcc --ref msys2-apiss-mirror-sync
-```
-
-Each mirror repo uses the same workflow template
-[`config/mirror-template/mirror-sync.yml`](../config/mirror-template/mirror-sync.yml).
-Per-repo settings come from [`config/mirror-sync/`](../config/mirror-sync/) and are
-applied to `.github/mirror-sync.json` on branch `msys2-apiss-mirror-sync` by `yarn mirror-init` when
-templates differ or the branch layout is invalid ([Tooling branch layout](mirror-init.md#tooling-branch-layout)).
-Package mirrors notify `msys2-apiss-sync` when `Notify.Enabled` is true; mirror-only repos
-(`mingw-w64`, `glibc`) set `Notify.Enabled` to false.
+See [`mirror-poll.md`](mirror-poll.md) for cron, `yarn mirror-poll`, and manual Block 3
+dispatch. Package mirrors notify Block 4 when `Notify.Enabled` is true; mirror-only
+repos set `Notify.Enabled` to false.
 
 ### 2. Watch mirror runs
 
@@ -163,18 +148,15 @@ yarn fetch-mirrors
 yarn fetch-mirrors --push
 yarn fetch-mirrors --skip-fetch
 yarn fetch-mirrors --skip-fetch --push
-yarn mirror-poll
 ```
 
 `--push` runs `git push --force-with-lease origin msys2-apiss-sync` on each mirror when
 local `msys2-apiss-sync` differs from `origin/msys2-apiss-sync`. Requires push access to `msys2-apiss/*`
 mirror repos.
 
-`yarn mirror-poll` compares upstream tips and dispatches Block 3 when behind.
-`yarn mirror-init --push` pushes mirror branches and dispatches Block 3 directly
-(no tip comparison). Both use `gh` (`gh auth login` locally; in CI
-[`mirror-poll.yml`](../.github/workflows/mirror-poll.yml) uses `SYNC_DISPATCH_TOKEN`
-when set).
+Tip compare and Block 3 dispatch: [`mirror-poll.md`](mirror-poll.md). Block 1
+[`yarn mirror-init --push`](mirror-init.md) pushes tooling branches and dispatches Block 3
+directly (no tip compare).
 
 ### Full sync (retrieve, merge, replay, push)
 
