@@ -1,7 +1,7 @@
 # mirror-poll (Block 2)
 
 `yarn mirror-poll` compares upstream vs mirror tips and dispatches Block 3 when behind.
-Pipeline: [`plan-workflow.md`](plan-workflow.md). Secrets: [`usage.md`](usage.md#setup-sync_dispatch_token).
+Pipeline: [`usage.md`](usage.md). Secrets: [`usage.md`](usage.md#setup-sync_dispatch_token).
 Code: `src/mirror-poll/`. Workflow: [`.github/workflows/mirror-poll.yml`](../.github/workflows/mirror-poll.yml)
 on **`msys2-apiss/msys2-apiss-sync`** `main`.
 
@@ -103,7 +103,7 @@ gh workflow run mirror-poll.yml --repo msys2-apiss/msys2-apiss-sync --ref main
 
 - [`mirror-init.md`](mirror-init.md) -- Block 1 tooling install; `--no-poll`
 - [`mirror-sync.md`](mirror-sync.md) -- Block 3 fast-forward and notify
-- [`plan-workflow.md`](plan-workflow.md) -- pipeline map
+- [`usage.md`](usage.md) -- pipeline map
 - [`mirror-merge.md`](mirror-merge.md) -- package replay sources and `Notify.Enabled`
 - [`add-mirror.md`](add-mirror.md) -- register a repo in `Repos`
 - [`usage.md`](usage.md) -- PAT setup and full GitHub operator flow

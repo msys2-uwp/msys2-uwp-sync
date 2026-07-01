@@ -7,17 +7,16 @@ alwaysApply: true
 
 ## Single source of truth
 
-All architecture, phases, and implementation design live in committed repo files:
+All architecture and operator docs live in committed repo files:
 
-- **Center design:** [`docs/plan-workflow.md`](docs/plan-workflow.md) (target workflow by block; edit first for repo/block/CI changes)
-- **Index:** [`docs/PLAN.md`](docs/PLAN.md) (shared replay foundation + links)
-- **Mirror-merge:** [`docs/mirror-merge.md`](docs/mirror-merge.md) (Block 4: `yarn mirror-merge`)
-- **Mirror-init:** [`docs/mirror-init.md`](docs/mirror-init.md) (Block 1: `yarn mirror-init`; [Tooling branch layout](docs/mirror-init.md#tooling-branch-layout))
-- **Mirror-poll:** [`docs/mirror-poll.md`](docs/mirror-poll.md) (Block 2: `yarn mirror-poll`)
-- **Mirror-sync:** [`docs/mirror-sync.md`](docs/mirror-sync.md) (Block 3: CI on mirror repos)
+- **Entry:** [`docs/usage.md`](docs/usage.md) (pipeline map, GitHub and local commands)
+- **Block 1:** [`docs/mirror-init.md`](docs/mirror-init.md) (`yarn mirror-init`; [Tooling branch layout](docs/mirror-init.md#tooling-branch-layout))
+- **Block 2:** [`docs/mirror-poll.md`](docs/mirror-poll.md) (`yarn mirror-poll`)
+- **Block 3:** [`docs/mirror-sync.md`](docs/mirror-sync.md) (CI on mirror repos)
+- **Block 4:** [`docs/mirror-merge.md`](docs/mirror-merge.md) (`yarn mirror-merge`; replay algorithm)
 
-Edit the plan file that matches the area you are changing. Do not create other
-parallel plan files unless the user explicitly asks.
+Edit the doc that matches the area you are changing. Do not create other parallel
+plan files unless the user explicitly asks.
 
 ## Do not use Cursor internal plans
 
@@ -25,21 +24,18 @@ Do **not** treat Cursor's internal plan feature as the project plan:
 
 - No authoring or updating `~/.cursor/plans/*.plan.md` as the canonical design
 - No copying plans to/from Cursor-only paths instead of the repo
-- No "save to repo later" -- changes belong in `docs/PLAN.md` in the same turn
-
-Internal plans are untracked, invisible in git, and easy to lose. They caused
-confusion when they diverged from `docs/PLAN.md`.
+- No "save to repo later" -- changes belong in `docs/` in the same turn
 
 ## When design changes
 
-1. Update [`docs/plan-workflow.md`](docs/plan-workflow.md) when blocks, repos, CI, or operator flows change
-2. Update the area plan (`mirror-merge.md`, `mirror-init.md`) or [`PLAN.md`](docs/PLAN.md) when algorithm or module detail changes
-2. Commit plan changes when the user asks (or as part of an agreed docs pass)
-3. Reference these paths in code, rules, and PRs -- not Cursor plan URLs
+1. Update [`docs/usage.md`](docs/usage.md) when pipeline map, repos, CI boundaries, or operator flows change
+2. Update the matching block doc (`mirror-init.md`, `mirror-poll.md`, `mirror-sync.md`, `mirror-merge.md`) for block-specific detail
+3. Commit plan changes when the user asks (or as part of an agreed docs pass)
+4. Reference these paths in code, rules, and PRs -- not Cursor plan URLs
 
 ## Agent behavior
 
-- Read design from committed plan docs, not from conversation-only or Cursor-internal state
-- Read block/repo/CI design from [`plan-workflow.md`](docs/plan-workflow.md) first
-- Mirror-merge operator doc -> `mirror-merge.md`; replay algorithm -> `PLAN.md`; Block 1 detail -> `mirror-init.md`; Block 2 -> `mirror-poll.md`; Block 3 -> `mirror-sync.md`
-- If committed plans and chat history disagree, the committed files win unless the user is actively revising them
+- Read design from committed docs, not from conversation-only or Cursor-internal state
+- Start from [`usage.md`](docs/usage.md) for pipeline and operator flows
+- Block detail: `mirror-init.md`, `mirror-poll.md`, `mirror-sync.md`, `mirror-merge.md`
+- If committed docs and chat history disagree, the committed files win unless the user is actively revising them

@@ -5,8 +5,7 @@ MSYS2 package history into `msys2-apiss/msys2-apiss`.
 
 ## Read first
 
-- [docs/plan-workflow.md](docs/plan-workflow.md) - center design (target workflow by block)
-- [docs/PLAN.md](docs/PLAN.md) - index and shared replay foundation
+- [docs/usage.md](docs/usage.md) - pipeline entry, operator commands, local testing
 - [docs/mirror-merge.md](docs/mirror-merge.md) - Block 4 (`yarn mirror-merge`)
 - [docs/mirror-init.md](docs/mirror-init.md) - Block 1 (`yarn mirror-init`; [Tooling branch layout](docs/mirror-init.md#tooling-branch-layout))
 - [docs/mirror-poll.md](docs/mirror-poll.md) - Block 2 (`yarn mirror-poll`)
@@ -26,8 +25,8 @@ MSYS2 package history into `msys2-apiss/msys2-apiss`.
 
 ## Do not
 
-- Ship untestable instructions (dot-source-only recipes); use runnable scripts -- see `.cursor/rules/human-testable.mdc`, [`docs/usage.md`](docs/usage.md), and [`docs/run-local.md`](docs/run-local.md)
-- Use Cursor internal plans (`~/.cursor/plans/`) or untracked shadow plan files; edit [`docs/PLAN.md`](docs/PLAN.md) only (see `.cursor/rules/planning-docs.mdc`)
+- Ship untestable instructions (dot-source-only recipes); use runnable scripts -- see `.cursor/rules/human-testable.mdc` and [`docs/usage.md`](docs/usage.md)
+- Use Cursor internal plans (`~/.cursor/plans/`) or untracked shadow plan files; edit committed docs in `docs/` (see `.cursor/rules/planning-docs.mdc`)
 - Use `git merge` of entire upstream repos into destination (use replay instead)
 - Add platform-specific APIs in shared sync code
 - Commit PATs or tokens; use GitHub Actions secrets only
@@ -37,11 +36,11 @@ MSYS2 package history into `msys2-apiss/msys2-apiss`.
 
 | Task | Location |
 |------|----------|
-| Sync logic | `src/cli/`, `src/lib/`, `src/types/` |
+| Sync logic | `src/mirror-init/`, `src/mirror-poll/`, `src/mirror-sync/`, `src/mirror-merge/`, `src/git/` |
 | Config | `config/mirror-merge.json`, `config/mirror-poll.json` |
 | Replay cursors | destination branches `upstream`, `upstream-ports`, `upstream-ports-mingw` |
 | CI | `.github/workflows/` |
-| Design changes | update `docs/PLAN.md` first |
-| Run sync | GitHub and local ops -- [`docs/usage.md`](docs/usage.md) |
-| Local testing | `yarn test`, dry-run, pipeline steps -- [`docs/run-local.md`](docs/run-local.md) |
+| Design changes | update the matching `docs/mirror-*.md` or [`docs/usage.md`](docs/usage.md) |
+| Run sync | [`docs/usage.md`](docs/usage.md) |
+| Local testing | `yarn test`, dry-run -- [`docs/usage.md`](docs/usage.md) |
 | Add a mirror | [`docs/add-mirror.md`](docs/add-mirror.md) |

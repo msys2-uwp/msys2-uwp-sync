@@ -27,11 +27,11 @@ Do not rewrite the base commit from sync tooling.
 - Preserve upstream author name/email and author date (`GIT_AUTHOR_*`).
 - Preserve upstream committer name/email and committer date (`GIT_COMMITTER_*`).
 - Author and committer metadata are never collapsed to one identity or date.
-- Use normalized commit message template from `docs/PLAN.md` (Deterministic replay).
+- Use normalized commit message template from `config/mirror-merge.json` (`Sources[].CommitMessage`).
 - Do not use wholesale `git merge` of upstream repos.
 - Incremental runs must match append order of a full rebuild at same upstream tips.
 - Incremental only: skip commits with committer date within `minReplayAgeMinutes` (default 5).
-- Track replay and resume state with destination branches only (`upstream`, `upstream-ports`, `upstream-ports-mingw`); no checkpoint file (see `docs/PLAN.md`).
+- Track replay and resume state with destination branches only (`upstream`, `upstream-ports`, `upstream-ports-mingw`); no checkpoint file (see [`docs/mirror-merge.md`](docs/mirror-merge.md)).
 
 ## Triggers
 
@@ -42,7 +42,7 @@ Do not rewrite the base commit from sync tooling.
 
 ## References
 
-- Full plan: `docs/PLAN.md`
+- Pipeline entry: [`docs/usage.md`](docs/usage.md)
 - Block 1 tooling branch layout: [`docs/mirror-init.md` -- Tooling branch layout](docs/mirror-init.md#tooling-branch-layout)
 - Block 2 mirror-poll: [`docs/mirror-poll.md`](docs/mirror-poll.md)
 - Block 4 mirror-merge: [`docs/mirror-merge.md`](docs/mirror-merge.md)

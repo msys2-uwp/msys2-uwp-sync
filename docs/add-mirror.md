@@ -7,7 +7,7 @@ Local clones are **working copies** under `.work/mirrors/<repo>/`, checked out o
 branch **`msys2-apiss-mirror-sync`**, so you can edit the mirror-sync workflow and
 re-run **`yarn mirror-init`** before push.
 
-Design: [`PLAN.md`](PLAN.md). Mirror templates: [`config/mirror-template/`](../config/mirror-template/).
+Design: [`usage.md`](usage.md). Mirror templates: [`config/mirror-template/`](../config/mirror-template/).
 Ops: [`usage.md`](usage.md). Block 1 branch layout:
 [`mirror-init.md` -- Tooling branch layout](mirror-init.md#tooling-branch-layout).
 
@@ -192,7 +192,7 @@ Use **`--push`** when ready for GitHub.
 
 Package mirrors already exist for `MSYS2-packages` and `MINGW-packages`. Adding
 another replayed source requires a `Sources.*` entry, destination path mapping,
-and replay code changes -- see [`PLAN.md`](PLAN.md). For those mirrors, the local
+and replay code changes -- see [`mirror-merge.md`](mirror-merge.md). For those mirrors, the local
 path is still `.work/mirrors/<repo>/`.
 
 Use `Notify.Enabled: true` in `config/mirror-sync/<repo>.json` and set

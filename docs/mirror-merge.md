@@ -2,8 +2,7 @@
 
 `yarn mirror-merge` replays `MSYS2-packages` and `MINGW-packages` mirror history into
 `msys2-apiss/msys2-apiss` on `upstream`, `upstream-ports`, and `upstream-ports-mingw`.
-Pipeline: [`plan-workflow.md`](plan-workflow.md). Local debugging: [`run-local.md`](run-local.md).
-Replay algorithm detail: [`PLAN.md`](PLAN.md). Code: `src/mirror-merge/`. CI workflow:
+Pipeline: [`usage.md`](usage.md). Code: `src/mirror-merge/`. CI workflow:
 [`mirror-merge.yml`](../config/mirror-template/mirror-merge.yml) on destination branch
 **`msys2-apiss-mirror-merge`** ([Tooling branch layout](mirror-init.md#tooling-branch-layout)).
 
@@ -23,16 +22,16 @@ yarn mirror-merge [options]
 | `--destination-path <path>` | Existing clone (default `.work/destination/msys2-apiss`) |
 | `--log-file <path>` | Log to file (`--log-append`, `--log-to-console` optional) |
 
-Dev steps (same pipeline, local debug): `yarn retrieve-history`, `yarn merge-queue`.
 Mirrors must exist under `.work/mirrors/` (Block 1 [`mirror-init`](mirror-init.md)).
 
 ## Role
 
-Block 4 reads mirror git history, merge-sorts ports + ports-mingw commits, replays each
-entry onto the destination tree, and pushes `upstream*`. It preserves upstream author,
-committer, and normalized commit message template.
+Block 4 reads mirror git history, merge-sorts ports + ports-mingw commits by replay rank
+(committer date, then author date, source id, SHA), replays each entry onto the destination
+tree, and pushes `upstream*`. Upstream author and committer metadata are preserved.
+Commit messages use the template in [`config/mirror-merge.json`](../config/mirror-merge.json).
 
-Sources (from [`config/mirror-merge.json`](../config/mirror-merge.json)):
+Sources:
 
 | Mirror | Destination subdir | Cursor branch |
 |--------|-------------------|---------------|
@@ -40,7 +39,7 @@ Sources (from [`config/mirror-merge.json`](../config/mirror-merge.json)):
 | `MINGW-packages` | `ports-mingw/` | `upstream-ports-mingw` |
 
 Replay tip branch: `upstream` (`Destination.ReplayTip`). First replayed commit parents
-`Destination.BaseCommit`.
+`Destination.BaseCommit` (`6fc20894663468a04dd4986a8b1c15a9d5ae8649`).
 
 ## Triggers
 
@@ -80,19 +79,17 @@ resume point until push succeeds.
 3. **Replay** -- apply each upstream commit; update refs; push unless `--dry-run`
 
 Incremental runs apply `Replay.MinReplayAgeMinutes` (default 5) on committer date.
+Destination `upstream` stays linear (one parent per commit); upstream merge topology
+is flattened to file deltas under `ports/` and `ports-mingw/`.
 
 ## Fork-safe cursors
 
-Cursor branches (`upstream-ports`, `upstream-ports-mingw`) advance only at **mainline**
-queue positions (first-parent spine from mirror tip). Side-branch commits are replayed
-onto `upstream` but do not move cursor branches until a later mainline entry.
+Cursor branches advance only at **mainline** queue positions (first-parent spine from
+mirror tip). Side-branch commits replay onto `upstream` but do not move cursor branches
+until a later mainline entry.
 
-Why: resume uses `git log --reverse <cursor>..<tip>`. A mainline cursor still picks up
-parallel fork siblings; a side-branch cursor would pin resume to the wrong line.
-
-Rule per queue index: `safe[i]` = queue entry is on the first-parent spine from tip.
-Merged queue: both sources must be safe at that index. Code: `src/mirror-merge/fork-safe.ts`,
-`src/mirror-merge/queue.ts` (`testSyncCursorBranchUpdateSafe`).
+Code: `src/mirror-merge/fork-safe.ts`, `src/mirror-merge/queue.ts`
+(`testSyncCursorBranchUpdateSafe`).
 
 ## Config
 
@@ -104,8 +101,8 @@ Merged queue: both sources must be safe at that index. Code: `src/mirror-merge/f
 | `Sources[]` | Mirror repo, `DestSubdir`, `CursorBranch`, message template |
 | `Replay.*` | Age gate, empty-tree skip, line endings |
 
-GitHub Actions secrets are not in this file; Block 3 notify uses `SYNC_DISPATCH_TOKEN`
-([`mirror-sync.md`](mirror-sync.md#ci-secrets), [`usage.md`](usage.md#setup-sync_dispatch_token)).
+GitHub Actions secrets: [`mirror-sync.md`](mirror-sync.md#ci-secrets),
+[`usage.md`](usage.md#setup-sync_dispatch_token).
 
 ## Operator flows
 
@@ -143,11 +140,17 @@ yarn mirror-merge --clean --destination-path .work/destination/msys2-apiss
 gh workflow run mirror-merge.yml --repo msys2-apiss/msys2-apiss --ref msys2-apiss-mirror-merge -f clean=true
 ```
 
-**Verify no drift** (dry-run, no push): [`run-local.md`](run-local.md#verify-replay-manifest).
+**Verify no drift** (dry-run, no push):
+
+```bash
+yarn mirror-merge --dry-run --skip-fetch --destination-path .work/destination/msys2-apiss
+```
+
+More local testing: [`usage.md`](usage.md#dry-run-and-verify-block-4).
 
 ## Related
 
 - [`mirror-sync.md`](mirror-sync.md) -- Block 3 upstream refresh before replay
 - [`mirror-poll.md`](mirror-poll.md) -- Block 2 tip compare
 - [`mirror-init.md`](mirror-init.md) -- installs `mirror-merge.yml` tooling branch
-- [`PLAN.md`](PLAN.md) -- replay phases, module layout, acceptance tests
+- [`usage.md`](usage.md) -- pipeline map and secrets

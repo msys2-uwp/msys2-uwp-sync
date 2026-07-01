@@ -1,7 +1,7 @@
 # mirror-sync (Block 3)
 
 Block 3 fast-forwards each mirror's **content branch** from upstream and optionally
-dispatches Block 4. Pipeline: [`plan-workflow.md`](plan-workflow.md). Code:
+dispatches Block 4. Pipeline: [`usage.md`](usage.md). Code:
 `src/mirror-sync/`. CI bundle: `config/mirror-template/toolings/mirror-sync.mjs`
 (`yarn pack-toolings`). Workflow template:
 [`mirror-sync.yml`](../config/mirror-template/mirror-sync.yml) on branch

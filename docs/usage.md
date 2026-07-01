@@ -1,14 +1,44 @@
 # Usage
 
-How to run sync on GitHub and on your machine.
+Operator entry point for the MSYS2-APISS sync pipeline.
 
-Pipeline: `msys2/*` upstream -> `msys2-apiss/*` mirrors -> `msys2-apiss/msys2-apiss`
-on branches `upstream`, `upstream-ports`, `upstream-ports-mingw`.
+**Flow:** `msys2/*` upstream -> `msys2-apiss/*` mirrors -> `msys2-apiss/msys2-apiss`
+on `upstream`, `upstream-ports`, `upstream-ports-mingw`.
 
-Local testing and debugging: [`run-local.md`](run-local.md). Design and flags:
-[`PLAN.md`](PLAN.md). Block 1: [`mirror-init.md`](mirror-init.md). Block 2:
-[`mirror-poll.md`](mirror-poll.md). Block 3: [`mirror-sync.md`](mirror-sync.md). Block 4:
-[`mirror-merge.md`](mirror-merge.md).
+**Runtime:** Node.js 26+, Yarn, git. TypeScript runs via Node type stripping; git
+operations use the `git` CLI only.
+
+## Pipeline
+
+Block 0 (config) -> **1** mirror-init -> **2** mirror-poll -> **3** mirror-sync ->
+**4** mirror-merge.
+
+| Block | Doc | Entry |
+|-------|-----|-------|
+| 1 | [`mirror-init.md`](mirror-init.md) | `yarn mirror-init` |
+| 2 | [`mirror-poll.md`](mirror-poll.md) | `yarn mirror-poll` |
+| 3 | [`mirror-sync.md`](mirror-sync.md) | CI on mirror repos |
+| 4 | [`mirror-merge.md`](mirror-merge.md) | `yarn mirror-merge` |
+
+```mermaid
+flowchart LR
+  B0[Block 0 config] --> B1[mirror-init]
+  B1 -->|push| B3[mirror-sync]
+  B2[mirror-poll] -->|dispatch| B3
+  B3 -->|Notify.Enabled| B4[mirror-merge]
+  B0 -.-> B2
+  B0 -.-> B3
+```
+
+| Scenario | Blocks 1-3 | Block 4 |
+|----------|------------|---------|
+| Local init only | `yarn mirror-init` | -- |
+| Full pipeline (local) | `yarn mirror-init --push` | or `yarn mirror-merge --skip-fetch` after mirrors advance |
+| Full refresh (CI) | Block 2 cron -> Block 3 | [`mirror-merge.yml` CI](mirror-merge.md) |
+| Poll only | Block 2 -> Block 3 | `yarn mirror-merge --skip-fetch` or wait for dispatch |
+| Reset destination replay | -- | `yarn mirror-merge --clean` or CI `clean=true` |
+
+All commands run from a local checkout of [`msys2-apiss/msys2-apiss-sync`](https://github.com/msys2-apiss/msys2-apiss-sync).
 
 ## GitHub (`gh`)
 
@@ -85,44 +115,66 @@ Get-Content -Raw mirror-push | gh secret set MIRROR_PUSH_SSH_KEY --repo msys2-ap
 
 SSH is used only for `git push` on repos with `PushViaSsh` true.
 
-### 1. Refresh mirrors from upstream
+### Refresh mirrors
 
 See [`mirror-poll.md`](mirror-poll.md) and [`mirror-sync.md`](mirror-sync.md) for cron,
 tip compare, watch runs, and manual dispatch.
 
-### 2. Replay destination
+### Replay destination
 
 See [`mirror-merge.md`](mirror-merge.md) for Block 4 CI trigger, watch, and recovery.
 
-### 3. Verify CI run
-
-See [`mirror-merge.md`](mirror-merge.md#operator-flows) and
-[`run-local.md`](run-local.md#verify-replay-manifest) for branch tips and dry-run verify.
-
-### 4. Recovery and special cases
-
-See [`mirror-merge.md`](mirror-merge.md#operator-flows) (`--clean`, resume).
-
 ## Local machine
 
-Requires **Node.js 26+**, **Yarn**, **git**, and network (mirror clone/fetch).
+Requires **Node.js 26+**, **Yarn**, **git**, and network when fetching mirrors.
 
-From the repository root.
-
-### Mirrors
+### Tests
 
 ```bash
-yarn fetch-mirrors
-yarn fetch-mirrors --push
-yarn fetch-mirrors --skip-fetch
-yarn fetch-mirrors --skip-fetch --push
+yarn test
+yarn typecheck
 ```
 
-`--push` runs `git push --force-with-lease origin msys2-apiss-sync` on each mirror when
-local `msys2-apiss-sync` differs from `origin/msys2-apiss-sync`. Requires push access to `msys2-apiss/*`
-mirror repos.
+### Block commands
 
-Tip compare and Block 3 dispatch: [`mirror-poll.md`](mirror-poll.md),
-[`mirror-sync.md`](mirror-sync.md). Block 1 [`yarn mirror-init --push`](mirror-init.md)
-pushes tooling branches and dispatches Block 3 directly (no tip compare). Block 4 replay:
+```bash
+yarn mirror-init [--repo <name>] [--skip-fetch] [--push] [--no-poll]
+yarn mirror-poll [--repo <name>]
+yarn mirror-merge [options]
+```
+
+Block detail: [`mirror-init.md`](mirror-init.md), [`mirror-poll.md`](mirror-poll.md),
 [`mirror-merge.md`](mirror-merge.md).
+
+Prepare mirrors locally first:
+
+```bash
+yarn mirror-init --skip-fetch
+```
+
+### Dry-run and verify (Block 4)
+
+```bash
+git clone https://github.com/msys2-apiss/msys2-apiss.git .work/destination/msys2-apiss
+yarn mirror-init --skip-fetch
+yarn mirror-merge --dry-run --skip-fetch --destination-path .work/destination/msys2-apiss
+```
+
+Exit 0: no mismatch. Non-zero: inspect `[sync]` output and
+[`mirror-merge.md`](mirror-merge.md#operator-flows).
+
+Throttle for dev:
+
+```bash
+yarn mirror-merge --dry-run --skip-fetch --max-commits 5
+yarn mirror-merge --skip-fetch --max-commits 10 --destination-path .work/destination/msys2-apiss
+```
+
+Log capture (`--log-file` suppresses console info; warnings/errors still print;
+truncate each run unless `--log-append`):
+
+```bash
+yarn mirror-merge --dry-run --skip-fetch --log-file .work/cache/replay-log/sync-dryrun.log
+```
+
+Use paths under `.work/cache/replay-log/`, not repo-root files.

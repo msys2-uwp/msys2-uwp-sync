@@ -17,9 +17,8 @@ documentation-only instructions.
 
 - Provide runnable entry points: `yarn mirror-init`, `yarn mirror-poll`,
   `yarn mirror-merge`, `yarn test`, and `yarn typecheck`
-- Document operational runs in [`docs/usage.md`](../docs/usage.md) and local testing in
-  [`docs/run-local.md`](../docs/run-local.md) (copy-paste, run, read `[sync]` / `[PASS]`
-  / counts / tables)
+- Document operational and local runs in [`docs/usage.md`](../docs/usage.md)
+  (copy-paste, run, read `[sync]` / `[PASS]` / counts / tables)
 - Block 3 runs on mirror repos via CI only; see [`docs/mirror-sync.md`](../docs/mirror-sync.md)
 - Run the same command yourself before telling the user something works
 - Print progress and summary so success is obvious
@@ -34,12 +33,10 @@ documentation-only instructions.
 
 ## Docs
 
-- [`docs/usage.md`](../docs/usage.md): GitHub and local operational commands
+- [`docs/usage.md`](../docs/usage.md): pipeline, GitHub ops, local testing
 - [`docs/mirror-poll.md`](../docs/mirror-poll.md): Block 2 poll and dispatch
 - [`docs/mirror-sync.md`](../docs/mirror-sync.md): Block 3 fast-forward and notify
 - [`docs/mirror-merge.md`](../docs/mirror-merge.md): Block 4 replay and CI
-- [`docs/run-local.md`](../docs/run-local.md): local testing and debugging
-- [`docs/PLAN.md`](../docs/PLAN.md): design; link to usage.md for run commands
 
 ## Agent behavior
 

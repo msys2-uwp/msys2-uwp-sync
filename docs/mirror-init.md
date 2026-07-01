@@ -1,7 +1,7 @@
 # mirror-init (Block 1)
 
-`yarn mirror-init` installs Block 3/4 workflow YAML on tooling branches. Pipeline:
-[`plan-workflow.md`](plan-workflow.md). Secrets: [`usage.md`](usage.md). New mirror:
+`yarn mirror-init` installs Block 3/4 workflow YAML on tooling branches.
+Pipeline and secrets: [`usage.md`](usage.md). New mirror:
 [`add-mirror.md`](add-mirror.md). Code: `src/mirror-init/`.
 
 ## Command
@@ -111,6 +111,5 @@ reuse complete clones when possible.
 - [`mirror-sync.md`](mirror-sync.md) -- Block 3 fast-forward and dispatch 404 troubleshooting
 - [`mirror-poll.md`](mirror-poll.md) -- Block 2 tip compare and dispatch
 - [`mirror-merge.md`](mirror-merge.md) -- Block 4 replay
-- [`plan-workflow.md`](plan-workflow.md) -- pipeline map
+- [`usage.md`](usage.md) -- pipeline map and secrets
 - [`add-mirror.md`](add-mirror.md) -- register a mirror
-- [`usage.md`](usage.md) -- secrets and commands

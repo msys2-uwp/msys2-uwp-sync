@@ -15,8 +15,8 @@ Full copy-paste steps: [`docs/usage.md`](../docs/usage.md).
 | `mirror-poll.yml` | Block 2: [`mirror-poll.md`](../docs/mirror-poll.md) |
 | `config/mirror-template/mirror-merge.yml` (installed on **`msys2-apiss/msys2-apiss`**, branch `msys2-apiss-mirror-merge`; [Tooling branch layout](../docs/mirror-init.md#tooling-branch-layout)) | Block 4: [`mirror-merge.md`](../docs/mirror-merge.md) |
 
-Dry-run manifest verification: [`mirror-merge.md`](../docs/mirror-merge.md); see
-[`run-local.md`](../docs/run-local.md).
+Dry-run manifest verification: [`mirror-merge.md`](../docs/mirror-merge.md) and
+[`usage.md`](../docs/usage.md).
 
 ## Mirror repos (separate repositories)
 
