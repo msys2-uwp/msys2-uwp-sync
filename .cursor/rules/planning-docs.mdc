@@ -11,7 +11,7 @@ All architecture, phases, and implementation design live in committed repo files
 
 - **Center design:** [`docs/plan-workflow.md`](docs/plan-workflow.md) (target workflow by block; edit first for repo/block/CI changes)
 - **Index:** [`docs/PLAN.md`](docs/PLAN.md) (shared replay foundation + links)
-- **Mirror-merge:** [`docs/plan-sync-merge.md`](docs/plan-sync-merge.md) (`msys2-apiss` destination, Block 4 `yarn mirror-merge`)
+- **Mirror-merge:** [`docs/mirror-merge.md`](docs/mirror-merge.md) (Block 4: `yarn mirror-merge`)
 - **Mirror-init:** [`docs/mirror-init.md`](docs/mirror-init.md) (Block 1: `yarn mirror-init`; [Tooling branch layout](docs/mirror-init.md#tooling-branch-layout))
 - **Mirror-poll:** [`docs/mirror-poll.md`](docs/mirror-poll.md) (Block 2: `yarn mirror-poll`)
 
@@ -32,7 +32,7 @@ confusion when they diverged from `docs/PLAN.md`.
 ## When design changes
 
 1. Update [`docs/plan-workflow.md`](docs/plan-workflow.md) when blocks, repos, CI, or operator flows change
-2. Update the area plan (`plan-sync-merge.md`, `mirror-init.md`) or [`PLAN.md`](docs/PLAN.md) when algorithm or module detail changes
+2. Update the area plan (`mirror-merge.md`, `mirror-init.md`) or [`PLAN.md`](docs/PLAN.md) when algorithm or module detail changes
 2. Commit plan changes when the user asks (or as part of an agreed docs pass)
 3. Reference these paths in code, rules, and PRs -- not Cursor plan URLs
 
@@ -40,5 +40,5 @@ confusion when they diverged from `docs/PLAN.md`.
 
 - Read design from committed plan docs, not from conversation-only or Cursor-internal state
 - Read block/repo/CI design from [`plan-workflow.md`](docs/plan-workflow.md) first
-- Mirror-merge algorithm -> `plan-sync-merge.md` / `PLAN.md`; Block 1 detail -> `mirror-init.md`; Block 2 -> `mirror-poll.md`; Block 3 -> `plan-workflow.md`
+- Mirror-merge operator doc -> `mirror-merge.md`; replay algorithm -> `PLAN.md`; Block 1 detail -> `mirror-init.md`; Block 2 -> `mirror-poll.md`; Block 3 -> `plan-workflow.md`
 - If committed plans and chat history disagree, the committed files win unless the user is actively revising them

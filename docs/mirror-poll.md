@@ -97,15 +97,16 @@ gh workflow run mirror-poll.yml --repo msys2-apiss/msys2-apiss-sync --ref main
 
 ## Mirror list (reference)
 
-| Mirror | Upstream (config) | Feeds mirror-merge |
-|--------|-------------------|--------------------|
+| Mirror | Upstream (config) | Feeds Block 4 |
+|--------|-------------------|---------------|
 | `MSYS2-packages` | `msys2/MSYS2-packages` | yes (`ports/`) |
 | `MINGW-packages` | `msys2/MINGW-packages` | yes (`ports-mingw/`) |
-| Others in `Repos` | per `config/mirror-sync/*.json` | per `Notify.Enabled` |
+| Others in `Repos` | per `config/mirror-sync/*.json` | per `Notify.Enabled` ([`mirror-merge.md`](mirror-merge.md)) |
 
 ## Related
 
 - [`mirror-init.md`](mirror-init.md) -- Block 1 tooling install; `--no-poll`
 - [`plan-workflow.md`](plan-workflow.md) -- Blocks 3-4
+- [`mirror-merge.md`](mirror-merge.md) -- package replay sources and `Notify.Enabled`
 - [`add-mirror.md`](add-mirror.md) -- register a repo in `Repos`
 - [`usage.md`](usage.md) -- PAT setup and full GitHub operator flow

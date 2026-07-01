@@ -1,7 +1,8 @@
 # Run locally (testing)
 
-Operational sync (push, resume, bootstrap): [`usage.md`](usage.md). Mirror tooling branch
-layout: [`mirror-init.md` -- Tooling branch layout](mirror-init.md#tooling-branch-layout).
+Operational sync (push, resume, bootstrap): [`usage.md`](usage.md). Block 4:
+[`mirror-merge.md`](mirror-merge.md). Mirror tooling branch layout:
+[`mirror-init.md` -- Tooling branch layout](mirror-init.md#tooling-branch-layout).
 
 Requires **Node.js 26+**, **Yarn**, **git**, and network when fetching mirrors.
 
@@ -34,11 +35,7 @@ Writes `history-*-full.json` and `merged-queue-full.json`.
 
 ## Verify replay manifest
 
-Check that `msys2-apiss/msys2-apiss` branch tips match what replay would append
-from current mirror cursors. Same check the removed CI `sync-verify` workflow
-used; run locally before or after a sync change.
-
-Requires a destination clone (read-only is enough):
+Dry-run verify (no push): [`mirror-merge.md`](mirror-merge.md#operator-flows) and below.
 
 ```bash
 git clone https://github.com/msys2-apiss/msys2-apiss.git .work/destination/msys2-apiss
@@ -51,7 +48,7 @@ recovery steps.
 
 ## Dry-run and throttle
 
-Replay locally without push:
+See [`mirror-merge.md`](mirror-merge.md) flags. Examples:
 
 ```bash
 yarn mirror-merge --dry-run --skip-fetch --max-commits 5

@@ -95,7 +95,7 @@ unless `--no-poll` ([`mirror-poll.md`](mirror-poll.md)).
 **With `--push`:** above, then for each unpinned target in scope:
 
 - **Destination:** push `main` if missing; push **`msys2-apiss-mirror-merge`**; dispatch
-  Block 4 on that ref.
+  Block 4 ([`mirror-merge.md`](mirror-merge.md)).
 - **Mirror:** `gh repo create` if empty origin; push content branch if missing; push
   **`msys2-apiss-mirror-sync`**; dispatch Block 3 on that ref (skip only if a run is
   in progress). May temporarily set default branch to the tooling branch until GitHub
@@ -129,6 +129,7 @@ when ready.
 ## Related
 
 - [`mirror-poll.md`](mirror-poll.md) -- Block 2 tip compare and dispatch
-- [`plan-workflow.md`](plan-workflow.md) -- Blocks 3-4
+- [`mirror-merge.md`](mirror-merge.md) -- Block 4 replay
+- [`plan-workflow.md`](plan-workflow.md) -- pipeline map
 - [`add-mirror.md`](add-mirror.md) -- register a mirror
 - [`usage.md`](usage.md) -- secrets and commands

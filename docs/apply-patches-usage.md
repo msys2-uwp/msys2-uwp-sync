@@ -239,7 +239,8 @@ That matches incremental sync retrieve semantics: start **after** the cursor
 **Non-linear history.** On merge commits, `A..B` includes all commits reachable
 from `B` that are not reachable from `A`. Side-branch commits merged into `B`
 are included. This matches git log range behavior, not "only first-parent
-mainline" (full sync uses additional fork-safe cursor rules; this tool applies
+mainline" (full sync uses [fork-safe cursor rules](mirror-merge.md#fork-safe-cursors);
+this tool applies
 whatever the range resolves to).
 
 ### What each applied commit does

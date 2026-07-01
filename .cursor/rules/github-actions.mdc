@@ -13,10 +13,10 @@ Full copy-paste steps: [`docs/usage.md`](../docs/usage.md).
 | File | Purpose |
 |------|---------|
 | `mirror-poll.yml` | Block 2: [`mirror-poll.md`](../docs/mirror-poll.md) |
-| `config/mirror-template/mirror-merge.yml` (installed on **`msys2-apiss/msys2-apiss`**, branch `msys2-apiss-mirror-merge`; [Tooling branch layout](../docs/mirror-init.md#tooling-branch-layout)) | `workflow_dispatch` (Block 3 notify or manual `clean=true`) |
+| `config/mirror-template/mirror-merge.yml` (installed on **`msys2-apiss/msys2-apiss`**, branch `msys2-apiss-mirror-merge`; [Tooling branch layout](../docs/mirror-init.md#tooling-branch-layout)) | Block 4: [`mirror-merge.md`](../docs/mirror-merge.md) |
 
-Dry-run manifest verification: run locally (`yarn mirror-merge --dry-run --skip-fetch`); see
-[`docs/run-local.md`](../docs/run-local.md).
+Dry-run manifest verification: [`mirror-merge.md`](../docs/mirror-merge.md); see
+[`run-local.md`](../docs/run-local.md).
 
 ## Mirror repos (separate repositories)
 
@@ -62,7 +62,7 @@ Both blocks use **`gh workflow run`** on the tooling branch:
 | Name | From | To | Workflow |
 |------|------|-----|----------|
 | `workflow_dispatch_mirror_sync` | Block 2 ([`mirror-poll.md`](../docs/mirror-poll.md)) | Block 3 | `mirror-sync.yml` on `msys2-apiss-mirror-sync` |
-| `workflow_dispatch_mirror_merge` | Block 3 (`mirror-sync` notify) | Block 4 | `mirror-merge.yml` on `msys2-apiss-mirror-merge` |
+| `workflow_dispatch_mirror_merge` | Block 3 (`mirror-sync` notify) | Block 4 | [`mirror-merge.md`](../docs/mirror-merge.md) |
 
 Manual Block 4 runs use the same `workflow_dispatch` API (`gh workflow run mirror-merge.yml ...`).
 

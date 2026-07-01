@@ -7,7 +7,7 @@ MSYS2 package history into `msys2-apiss/msys2-apiss`.
 
 - [docs/plan-workflow.md](docs/plan-workflow.md) - center design (target workflow by block)
 - [docs/PLAN.md](docs/PLAN.md) - index and shared replay foundation
-- [docs/plan-sync-merge.md](docs/plan-sync-merge.md) - mirror-merge Block 4 (`yarn mirror-merge`)
+- [docs/mirror-merge.md](docs/mirror-merge.md) - Block 4 (`yarn mirror-merge`)
 - [docs/mirror-init.md](docs/mirror-init.md) - Block 1 (`yarn mirror-init`; [Tooling branch layout](docs/mirror-init.md#tooling-branch-layout))
 - [docs/mirror-poll.md](docs/mirror-poll.md) - Block 2 (`yarn mirror-poll`)
 - [.cursor/rules/](.cursor/rules/) - coding and workflow conventions

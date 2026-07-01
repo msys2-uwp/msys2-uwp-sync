@@ -7,14 +7,13 @@ on branches `upstream`, `upstream-ports`, `upstream-ports-mingw`.
 
 Local testing and debugging: [`run-local.md`](run-local.md). Design and flags:
 [`PLAN.md`](PLAN.md). Block 1: [`mirror-init.md`](mirror-init.md). Block 2:
-[`mirror-poll.md`](mirror-poll.md).
+[`mirror-poll.md`](mirror-poll.md). Block 4: [`mirror-merge.md`](mirror-merge.md).
 
 ## GitHub (`gh`)
 
-Block 2 cron and push triggers: [`mirror-poll.md`](mirror-poll.md). Block 4 CI is
-[`mirror-merge.yml`](../config/mirror-template/mirror-merge.yml) on destination repo
-**`msys2-apiss/msys2-apiss`**, branch **`msys2-apiss-mirror-merge`** (installed by
-`yarn mirror-init`; [Tooling branch layout](mirror-init.md#tooling-branch-layout)).
+Block 2: [`mirror-poll.md`](mirror-poll.md). Block 4:
+[`mirror-merge.md`](mirror-merge.md) (`mirror-merge.yml` on **`msys2-apiss-mirror-merge`**;
+installed by [`mirror-init`](mirror-init.md)).
 
 Requires the [GitHub CLI](https://cli.github.com/) (`gh auth login`) with access to
 `msys2-apiss`. Local commands use **git** and **gh** only; no env secrets.
@@ -28,7 +27,7 @@ One PAT is reused in three places:
 | Where | Block | Purpose |
 |-------|-------|---------|
 | `msys2-apiss/msys2-apiss-sync` | Block 2 | [`mirror-poll.md`](mirror-poll.md) (`GH_TOKEN` dispatches Block 3) |
-| `msys2-apiss/MSYS2-packages`, `MINGW-packages` | Block 3 | `mirror-sync.yml` notify step runs `gh workflow run mirror-merge.yml` on Block 4 |
+| `msys2-apiss/MSYS2-packages`, `MINGW-packages` | Block 3 | Notify step dispatches Block 4 ([`mirror-merge.md`](mirror-merge.md)) |
 
 Package mirrors **`MSYS2-packages`** and **`MINGW-packages`** need the secret on
 the mirror repo (`Notify.Enabled: true`). The tooling repo needs the same PAT
@@ -108,32 +107,16 @@ you still need a destination replay.
 
 ### 3. Replay destination
 
-Usually automatic after step 2. Trigger manually when mirrors are already current
-or dispatch did not run:
-
-```bash
-gh workflow run mirror-merge.yml --repo msys2-apiss/msys2-apiss --ref msys2-apiss-mirror-merge
-gh run watch --repo msys2-apiss/msys2-apiss-sync
-```
+See [`mirror-merge.md`](mirror-merge.md) for Block 4 CI trigger, watch, and recovery.
 
 ### 4. Verify CI run
 
-```bash
-gh run list --repo msys2-apiss/msys2-apiss --workflow mirror-merge.yml --ref msys2-apiss-mirror-merge --limit 5
-```
-
-Check destination branch tips on `msys2-apiss/msys2-apiss` (`upstream`,
-`upstream-ports`, `upstream-ports-mingw`).
-
-To verify the destination matches what replay would produce (dry-run, no push),
-run locally: [`run-local.md`](run-local.md#verify-replay-manifest).
+See [`mirror-merge.md`](mirror-merge.md#operator-flows) and
+[`run-local.md`](run-local.md#verify-replay-manifest) for branch tips and dry-run verify.
 
 ### Recovery and special cases
 
-| Goal | Command |
-|------|---------|
-| Resume after failure | Repeat step 3 (incremental from branch cursors) |
-| Reset branches, full replay | `gh workflow run mirror-merge.yml --repo msys2-apiss/msys2-apiss --ref msys2-apiss-mirror-merge -f clean=true` |
+See [`mirror-merge.md`](mirror-merge.md#operator-flows) (`--clean`, resume).
 
 ## Local machine
 
@@ -156,66 +139,4 @@ mirror repos.
 
 Tip compare and Block 3 dispatch: [`mirror-poll.md`](mirror-poll.md). Block 1
 [`yarn mirror-init --push`](mirror-init.md) pushes tooling branches and dispatches Block 3
-directly (no tip compare).
-
-### Full sync (retrieve, merge, replay, push)
-
-```bash
-yarn fetch-mirrors
-yarn retrieve-history
-yarn merge-queue
-yarn mirror-merge --destination-path .work/destination/msys2-apiss
-```
-
-Or one step:
-
-```bash
-yarn mirror-merge --destination-path .work/destination/msys2-apiss
-```
-
-Each script prints `[sync]` progress. Summary JSON is written under
-`.work/cache/replay-log/`.
-
-### Skip re-fetch
-
-When mirrors already exist under `.work/mirrors/`:
-
-```bash
-yarn mirror-merge --skip-fetch --destination-path .work/destination/msys2-apiss
-```
-
-### Resume after interrupt or failure
-
-Re-run without `--clean`. Branch cursors in the destination clone hold progress.
-
-```bash
-yarn mirror-merge --skip-fetch --destination-path .work/destination/msys2-apiss --log-file sync-run.log --log-append
-```
-
-### Bootstrap from scratch
-
-Reset sync branches and replay from history root:
-
-```bash
-yarn mirror-merge --clean --destination-path .work/destination/msys2-apiss
-```
-
-### Verify replay manifest
-
-Compare GitHub destination branches with what incremental replay would produce.
-No push; exit code 0 means no drift.
-
-Clone the destination once if needed:
-
-```bash
-git clone https://github.com/msys2-apiss/msys2-apiss.git .work/destination/msys2-apiss
-```
-
-Then:
-
-```bash
-yarn fetch-mirrors --skip-fetch
-yarn mirror-merge --dry-run --skip-fetch --destination-path .work/destination/msys2-apiss
-```
-
-Details and log capture: [`run-local.md`](run-local.md#verify-replay-manifest).
+directly (no tip compare). Block 4 replay: [`mirror-merge.md`](mirror-merge.md).

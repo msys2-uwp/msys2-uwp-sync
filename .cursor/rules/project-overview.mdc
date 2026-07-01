@@ -45,4 +45,5 @@ Do not rewrite the base commit from sync tooling.
 - Full plan: `docs/PLAN.md`
 - Block 1 tooling branch layout: [`docs/mirror-init.md` -- Tooling branch layout](docs/mirror-init.md#tooling-branch-layout)
 - Block 2 mirror-poll: [`docs/mirror-poll.md`](docs/mirror-poll.md)
+- Block 4 mirror-merge: [`docs/mirror-merge.md`](docs/mirror-merge.md)
 - Agent context: `AGENTS.md`

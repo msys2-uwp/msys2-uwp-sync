@@ -8,14 +8,14 @@ This repo implements two pipelines. Each has its own plan document:
 | Plan | Target | Entry commands |
 |------|--------|----------------|
 | [**Workflow (center)**](plan-workflow.md) | Blocks 0-4, repos, CI boundaries | See operator flows table |
-| [**Mirror-merge**](plan-sync-merge.md) | [msys2-apiss/msys2-apiss](https://github.com/msys2-apiss/msys2-apiss) destination | `yarn mirror-merge` (Block 4 local); `mirror-merge.yml` CI on `msys2-apiss-mirror-merge` |
+| [**Mirror-merge**](mirror-merge.md) | [msys2-apiss/msys2-apiss](https://github.com/msys2-apiss/msys2-apiss) destination | `yarn mirror-merge`; [`mirror-merge.yml` CI](mirror-merge.md) |
 | [**Mirror-init**](mirror-init.md#tooling-branch-layout) | Block 1: [Tooling branch layout](mirror-init.md#tooling-branch-layout), `--push` | `yarn mirror-init` |
 | [**Mirror-poll**](mirror-poll.md) | Block 2: tip compare, cron, `config/mirror-poll.json` | `yarn mirror-poll` |
 
 End-to-end flow: Block 0 (config URL) -> **Block 1** init -> **Block 2** poll
 ([`mirror-poll.md`](mirror-poll.md)) or Block 1 **`--push`** (dispatch Block 3) ->
-**Block 3** mirror-sync -> **Block 4** mirror-merge (replay + push to `msys2-apiss/msys2-apiss`
-`upstream*`).
+**Block 3** mirror-sync -> **Block 4** mirror-merge ([`mirror-merge.md`](mirror-merge.md);
+replay + push to `msys2-apiss/msys2-apiss` `upstream*`).
 
 The sections below are the **shared foundation** (runtime, replay algorithm, phases 1a-1d).
 For block map and operator commands, prefer [`plan-workflow.md`](plan-workflow.md).
@@ -28,7 +28,7 @@ Sync upstream package history from [msys2/MINGW-packages](https://github.com/msy
 and [msys2/MSYS2-packages](https://github.com/msys2/MSYS2-packages) into
 [msys2-apiss/msys2-apiss](https://github.com/msys2-apiss/msys2-apiss).
 
-Full mirror-merge plan: [`plan-sync-merge.md`](plan-sync-merge.md).
+Block 4 operator doc: [`mirror-merge.md`](mirror-merge.md).
 
 ## Key design change
 
@@ -760,7 +760,7 @@ Verify against legacy PowerShell on `--dry-run --max-commits 100` (same skip/rep
 
 Split across two plans (do not duplicate here):
 
-- **Mirror-merge CI:** [`plan-sync-merge.md`](plan-sync-merge.md) -- `mirror-merge.yml` on `msys2-apiss-mirror-merge` ([Tooling branch layout](mirror-init.md#tooling-branch-layout))
+- **Mirror-merge CI:** [`mirror-merge.md`](mirror-merge.md) -- `mirror-merge.yml` on `msys2-apiss-mirror-merge` ([Tooling branch layout](mirror-init.md#tooling-branch-layout))
 - **Mirror refresh:** [`mirror-init.md`](mirror-init.md#tooling-branch-layout) -- local `mirror-init` /
   `mirror-poll`; delete `mirror-poll.yml` and mirror-repo workflows
 
@@ -777,7 +777,7 @@ Split across two plans (do not duplicate here):
 
 ### Phase 2 workflow
 
-- Mirror-merge: [`plan-sync-merge.md`](plan-sync-merge.md)
+- Mirror-merge: [`mirror-merge.md`](mirror-merge.md)
 - Mirror-init: [`mirror-init.md`](mirror-init.md#tooling-branch-layout)
 
 ---
@@ -812,5 +812,5 @@ Split across two plans (do not duplicate here):
 4. **1c** Replay commit with optimized git path
 5. **1d** Orchestration; parity check vs legacy PowerShell
 6. **4** Remove PowerShell; docs pass
-7. Phase 2 CI -- see [`plan-sync-merge.md`](plan-sync-merge.md)
+7. Phase 2 CI -- see [`mirror-merge.md`](mirror-merge.md)
 8. Mirror local-only -- see [`mirror-init.md`](mirror-init.md#tooling-branch-layout)
